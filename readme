@@ -1,0 +1,3 @@
+This will be the ai-news-app.
+
+Idea is to scrape off the news from the web using beautifulsoup, utilizing the LLM to generate 3 sentence or more, and presenting to the user

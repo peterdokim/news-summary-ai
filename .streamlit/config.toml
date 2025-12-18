@@ -1,0 +1,6 @@
+[theme]
+base="dark"
+backgroundColor = "#0F1116"
+
+[theme.sidebar]
+color="darkGoldrod"

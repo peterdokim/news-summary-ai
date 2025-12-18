@@ -1,15 +1,52 @@
 import streamlit as st 
 import time
+from openai import OpenAI
+from selenium import webdriver
+from selenium.webdriver.common.action_chains import ActionChains
+from selenium.webdriver.common.keys import Keys
+from selenium.webdriver.support.ui import WebDriverWait
+from selenium.webdriver.support import expected_conditions as EC
+from selenium.common.exceptions import NoSuchElementException
 
+import random
 
-def get_news_content():
+st.markdown("""
+<style>
+h1 {
+    text-align: center;
+}
+</style>
+""", unsafe_allow_html = True)
+st.title("AI NEWS SUMMARY")
+for i in range(3):
+    st.markdown("##") 
+query = st.text_input(
+    "Enter search keyword:", ""
+)
+if st.button("Search"):
+    driver = webdriver.Chrome()
+    driver.get("https://www.youtube.com")
+    time.sleep(2)
     
-    return []
-
-
-def summarize_news_with_ai():
+    keyword = query
+    driver.find_element(By.ID).send_keys(keyword)
     
     
+    
+option_icons = {
+    "Search" : ":material/language: Search",
+    "Deep resarch": ":material/biotech: Deep research",
+    
+}
 
-st.title()
+options = st.segmented_control(
+    "",
+    options=list(option_icons.keys()),
+    format_func = lambda x : option_icons[x],
+    label_visibility = "collapsed",
+    selection_mode = "multi",
+)
+
+
+
 

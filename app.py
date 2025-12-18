@@ -10,6 +10,9 @@ from selenium.common.exceptions import NoSuchElementException
 
 import random
 
+
+
+
 st.markdown("""
 <style>
 h1 {
@@ -24,12 +27,28 @@ query = st.text_input(
     "Enter search keyword:", ""
 )
 if st.button("Search"):
-    driver = webdriver.Chrome()
-    driver.get("https://www.youtube.com")
+    '''Buffering'''
+    
+    '''progress = st.progress(0)
+    status = st.empty()
+    
+    results = news_summarizer(query)
+    summarized = []
+    for i,r in enumerate(results):
+        summarized.append(r)
+        summarized.progress((i+1)/len(results))
+        status.write(f"result complete {i+1}/{len(results)}")
+    status.success("Complete")
+    
+    for r in summarized : st.write(r)
+    '''
+
+    
     time.sleep(2)
     
+    
     keyword = query
-    driver.find_element(By.ID).send_keys(keyword)
+    #driver.find_element(By.ID).send_keys(keyword)
     
     
     

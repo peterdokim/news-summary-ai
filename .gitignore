@@ -1,0 +1,22 @@
+# Python
+__pycache__/
+*.pyc
+.env
+
+# Conda / venv
+.env/
+.venv/
+venv/
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Streamlit
+.streamlit/secrets.toml
+
+# Mac
+.DS_Store
+
+# Logs
+*.log
+

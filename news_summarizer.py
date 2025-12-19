@@ -176,7 +176,7 @@ class NewsSummarizer:
         기사 텍스트 리스트를 벡터로 변환
 
         Args:
-            texts:
+            texts: 
 
         Returns:
             np.ndarray: _description_

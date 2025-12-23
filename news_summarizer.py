@@ -43,6 +43,12 @@ class NewsSummarizer:
         
         news_urls = []
         
+        domains = [
+            "news.naver.com",
+            "m.entertain.naver.com",
+            "m.sports.naver.com"
+        ]
+        
         # 기사 리스트 요소
         for span in soup.select(
             "span.sds-comps-text.sds-comps-text-ellipsis.sds-comps-text-ellipsis-1"
@@ -57,12 +63,12 @@ class NewsSummarizer:
 
             href = a_tag.get("href")
 
-            if href and "news.naver.com" in href:
+            if any(domain in href for domain in domains):
                 if href not in news_urls:
                     news_urls.append(href)
 
-            if len(news_urls)  >= max_articles:
-                break
+                if len(news_urls)  >= max_articles:
+                    break
 
         return news_urls
 
@@ -74,11 +80,18 @@ class NewsSummarizer:
             soup = BeautifulSoup(resp.text, "html.parser")
 
             # 제목 추출
-            title_html = soup.select_one("#title_area")
-            title = title_html.get_text(strip=True) if title_html else None
+            title_elem = (
+                soup.select_one("#title_area") or                      # 일반 뉴스
+                soup.select_one('h2.ArticleHead_article_title__qh8GV') # 스포츠/엔터
+            )
+        
+            title = title_elem.get_text(strip=True) if title_elem else None
 
             # 본문 추출
-            article = soup.select_one("#dic_area")
+            article = (
+                soup.select_one("#dic_area") or             # 일반 뉴스
+                soup.select_one("div._article_content")     # 스포츠/엔터
+            )
             text = None
 
             if article:

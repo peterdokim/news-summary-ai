@@ -3,9 +3,11 @@ import requests
 import urllib.parse
 import numpy as np
 from bs4 import BeautifulSoup
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from openai import OpenAI
 from dotenv import load_dotenv
+from sklearn.cluster import KMeans
+from sklearn.metrics.pairwise import cosine_distances
 
 load_dotenv()
 
@@ -176,16 +178,184 @@ class NewsSummarizer:
         기사 텍스트 리스트를 벡터로 변환
 
         Args:
-            texts: 
+            texts: 변환할 텍스트 리스트
 
         Returns:
-            np.ndarray: _description_
+            numpy 배열 (texts 개수 x 1536 차원)
         """
-        return 
+        if not self.client:
+            raise ValueError("OpenAI 클라이언트가 초기화되지 않았습니다.")
+
+        texts = [t if t else " " for t in texts]
+
+        response = self.client.embeddings.create(
+            model="text-embedding-3-small",
+            input=texts
+        )
+
+        embeddings = [item.embedding for item in response.data]
+        
+        return np.array(embeddings)
+    
+    def cluster_articles(
+        self, embeddings: np.ndarray, articles: List[Dict],
+        n_clusters: int = 3) -> List[Dict]:
+        """
+        임베딩 벡터를 기반으로 기사들을 클러스터링
+
+        Args:
+            embeddings: 임베딩 벡터 배열 (기사 수 x 1536)
+            articles: 기사 정보 리스트
+            n_clusters: 클러스터 개수
+
+        Returns:
+            클러스터별 기사 정보 리스트
+            [
+                {
+                    'cluster_id': 0,
+                    'articles' : [기사1, 기사2, ...],
+                    'representative': 대표 기사,
+                },
+                ...
+            ]
+        """
+        n_clusters = min(n_clusters, len(articles))
+        
+        kmeans = KMeans(n_clusters=n_clusters, random_state=42, n_init=10)
+        labels = kmeans.fit_predict(embeddings)
+        
+        clusters = []
+        for cluster_id in range(n_clusters):
+            indices = np.where(labels == cluster_id)[0]
+            
+            if len(indices) == 0:
+                continue
+            
+            cluster_articles = [articles[i] for i in indices]
+            cluster_embeddings = embeddings[indices]
+            
+            centroid = kmeans.cluster_centers_[cluster_id]
+            distances = cosine_distances([centroid], cluster_embeddings)[0]
+            representative_idx = np.argmin(distances)
+            representative = cluster_articles[representative_idx]
+            
+            clusters.append({
+                'cluster_id': cluster_id,
+                'articles': cluster_articles,
+                'representative': representative,
+                'size': len(cluster_articles)
+            })
+            
+        return clusters
+    
+    def summarize_cluster(self, cluster: Dict) -> Dict:
+        """
+        클러스터의 대표 기사 요약 + 관련 기사 제목 리스트
+        
+        Returns:
+            {
+                'cluster_id': 클러스터 ID,
+                'size': 기사 개수,
+                'summary': 대표 기사 요약,
+                'representative_title': 대표 기사 제목,
+                'related_titles': 관련 기사 제목 리스트
+            }
+        """
+        representative = cluster['representative']
+        text = representative.get('text', '')
+        
+        # 대표 기사 요약
+        if text:
+            response = self.client.chat.completions.create(
+                model="gpt-4o-mini",  # 변경
+                messages=[
+                    {
+                        "role": "system",
+                        "content": (
+                            "뉴스 기사를 3문장 이내로 핵심만 요약해주세요. "
+                            "한국어로 답변하세요."
+                        )
+                    },
+                    {
+                        "role": "user",
+                        "content": text
+                    }
+                ],
+                max_tokens=300,      # 원래대로
+                temperature=0.3      # 원래대로
+            )
+            summary = response.choices[0].message.content
+        else:
+            summary = "요약할 내용이 없습니다."
+        
+        # 관련 기사 제목 리스트 (대표 기사 제외)
+        related_titles = [
+            article['title'] 
+            for article in cluster['articles'] 
+            if article['title'] != representative['title']
+        ]
+        
+        return {
+            'cluster_id': cluster['cluster_id'],
+            'size': cluster['size'],
+            'summary': summary,
+            'representative_title': representative['title'],
+            'related_titles': related_titles
+        }
+
+
+    def summarize_all_clusters(self, clusters: List[Dict]) -> List[Dict]:
+        """모든 클러스터 요약"""
+        results = []
+        for cluster in clusters:
+            result = self.summarize_cluster(cluster)
+            results.append(result)
+        return results
+    
+    def run(self, keyword: str, max_articles: int = 20, n_clusters: int =3) -> List[Dict]:
+        """
+        전체 파이프라인 실행: 크롤링 -> 임베딩 -> 클러스터링 -> 요약
+
+        Args:
+            keyword: 검색 키워드
+            max_articles: 최대 크롤링 기사 수
+            n_clusters: 클러스터 개수
+
+        Returns:
+            클러스터별 요약 결과 리스트
+        """
+        
+        articles = self.crawl_news(keyword, max_articles)
+        valid_articles, texts = self.prepare_articles_for_embedding(articles)
+        
+        if len(valid_articles) == 0:
+            print(f"❌ '{keyword}'에 대한 유효한 뉴스 기사가 없습니다.")
+            return [] 
+        
+        embeddings = self.get_embeddings(texts)
+        clusters = self.cluster_articles(embeddings, valid_articles, n_clusters)
+        results = self.summarize_all_clusters(clusters)
+        
+        return results
 
 if __name__ == "__main__": 
     summarizer = NewsSummarizer()
+
     keyword = input("검색어를 입력하세요: ")
-    articles = summarizer.crawl_news(keyword)
-    valid_articles, texts = summarizer.prepare_articles_for_embedding(articles)
-    print(texts)
+    results = summarizer.run(keyword, max_articles=20, n_clusters=3)
+    
+    for result in results:
+        print(f"\n{'='*60}")
+        print(f"[그룹 {result['cluster_id'] + 1}] - {result['size']}개 기사")
+        print(f"{'='*60}")
+        print(f"\n📰 대표 기사: {result['representative_title']}")
+        print(f"\n📝 요약:\n{result['summary']}")
+        
+        if result['related_titles']:
+            print(f"\n🔗 관련 기사:")
+            for title in result['related_titles']:
+                print(f"   - {title}")
+    
+    
+   
+    

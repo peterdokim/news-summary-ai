@@ -327,9 +327,11 @@ class NewsSummarizer:
         
         articles = self.crawl_news(keyword, max_articles)
         valid_articles, texts = self.prepare_articles_for_embedding(articles)
+        
         if len(valid_articles) == 0:
             print(f"❌ '{keyword}'에 대한 유효한 뉴스 기사가 없습니다.")
             return [] 
+        
         embeddings = self.get_embeddings(texts)
         clusters = self.cluster_articles(embeddings, valid_articles, n_clusters)
         results = self.summarize_all_clusters(clusters)

@@ -32,10 +32,22 @@ class NewsSummarizer:
         
         self.client = OpenAI(api_key=api_key)
 
-    def get_news_url(self, keyword: str, max_articles: int) -> List[str]:
+    def get_news_url(self, keyword: str, search_engine: str, max_articles: int) -> List[str]:
+        supported_engines = {'네이버', '다음'}
+        
+        if search_engine not in supported_engines:
+            raise ValueError(f"지원하지 않는 검색엔진입니다: {search_engine}.")
+        
         encoded = urllib.parse.quote(keyword)
+        
+        if search_engine == "네이버":
+            return self._get_naver_news_urls(encoded, max_articles)
+        elif search_engine == "다음":
+            return self._get_daum_news_urls(encoded, max_articles)
+        
+    def _get_naver_news_urls(self, encoded_keyword: str, max_articles: int) -> List[str]:
         """네이버 뉴스 검색에서 기사 URL 수집"""
-        url = f"https://search.naver.com/search.naver?ssc=tab.news.all&where=news&sm=tab_jum&query={encoded}"
+        url = f"{encoded_keyword}"
 
         resp = requests.get(url, headers=self.headers, timeout=10)
         resp.raise_for_status()
@@ -67,11 +79,52 @@ class NewsSummarizer:
                 if href not in news_urls:
                     news_urls.append(href)
 
-                if len(news_urls)  >= max_articles:
+                if len(news_urls) >= max_articles:
                     break
 
         return news_urls
-
+    
+    def _get_daum_news_urls(self, encoded_keyword: str, max_articles: int) -> List[str]:
+        """다음 뉴스 URL 수집"""
+        base_url = f"https://search.daum.net/search?nil_suggest=btn&w=news&DA=SBC&cluster=y&q={encoded_keyword}"
+        
+        news_urls = []
+        page = 1
+        
+        while len(news_urls) < max_articles:
+            # 페이지 URL 생성
+            if page == 1:
+                url = base_url
+            else:
+                url = f"{base_url}&p={page}"
+            
+            resp = requests.get(url, headers=self.headers, timeout=10)
+            resp.raise_for_status()
+            soup = BeautifulSoup(resp.text, "html.parser")
+            
+            # 기사 링크 수집
+            found_in_page = 0
+            for a_tag in soup.select("strong.tit-g.clamp-g > a[href]"):
+                href = a_tag.get("href", "")
+                
+                if not href:
+                    continue
+                
+                if href not in news_urls:
+                    news_urls.append(href)
+                    found_in_page += 1
+                
+                if len(news_urls) >= max_articles:
+                    break
+            
+            # 더 이상 기사가 없으면 종료
+            if found_in_page == 0:
+                break
+            
+            page += 1
+        
+        return news_urls
+         
     def extract_news_article(self, url: str) -> Dict[str, str]:
         """BeautifulSoup을 사용하여 기사 텍스트 추출"""
         try:
@@ -81,16 +134,22 @@ class NewsSummarizer:
 
             # 제목 추출
             title_elem = (
-                soup.select_one("#title_area") or                      # 일반 뉴스
-                soup.select_one('h2.ArticleHead_article_title__qh8GV') # 스포츠/엔터
+                # 네이버
+                soup.select_one("#title_area") or                           # 일반 뉴스
+                soup.select_one('h2.ArticleHead_article_title__qh8GV') or   # 스포츠/엔터
+                # 다음
+                soup.select_one('h3.tit_view')
             )
         
             title = title_elem.get_text(strip=True) if title_elem else None
 
             # 본문 추출
             article = (
+                # 네이버
                 soup.select_one("#dic_area") or             # 일반 뉴스
-                soup.select_one("div._article_content")     # 스포츠/엔터
+                soup.select_one("div._article_content") or  # 스포츠/엔터
+                # 다음
+                soup.select_one("section[dmcf-sid]")
             )
             text = None
 
@@ -134,18 +193,19 @@ class NewsSummarizer:
                 'error': f'파싱 실패: {str(e)}',
             }
         
-    def crawl_news(self, keyword: str, max_articles: int = 5) -> List[Dict[str, str]]:
+    def crawl_news(self, keyword: str, search_engine: str, max_articles: int = 5) -> List[Dict[str, str]]:
         """
         키워드로 뉴스 검색 → 모든 기사 본문 추출
         
         Args:
             keyword: 검색 키워드
+            search engine: 검색 엔진 (포털 사이트)
             max_articles: 최대 기사 수
         
         Returns:
             기사 정보 리스트 (제목, 본문, URL 등)
         """
-        urls = self.get_news_url(keyword, max_articles)
+        urls = self.get_news_url(keyword, search_engine, max_articles)
 
         articles = []
         for url in urls:
@@ -325,12 +385,14 @@ class NewsSummarizer:
             results.append(result)
         return results
     
-    def run(self, keyword: str, max_articles: int = 20, n_clusters: int =3) -> List[Dict]:
+    
+    def run(self, keyword: str, search_engine: str, max_articles: int = 20, n_clusters: int =3) -> List[Dict]:
         """
         전체 파이프라인 실행: 크롤링 -> 임베딩 -> 클러스터링 -> 요약
 
         Args:
             keyword: 검색 키워드
+            search_engine: 검색 엔진 (포털 사이트)
             max_articles: 최대 크롤링 기사 수
             n_clusters: 클러스터 개수
 
@@ -338,7 +400,7 @@ class NewsSummarizer:
             클러스터별 요약 결과 리스트
         """
         
-        articles = self.crawl_news(keyword, max_articles)
+        articles = self.crawl_news(keyword, search_engine, max_articles)
         valid_articles, texts = self.prepare_articles_for_embedding(articles)
         
         if len(valid_articles) == 0:
@@ -355,7 +417,9 @@ if __name__ == "__main__":
     summarizer = NewsSummarizer()
 
     keyword = input("검색어를 입력하세요: ")
-    results = summarizer.run(keyword, max_articles=20, n_clusters=3)
+    engine = input("검색엔진 (네이버/다음): ")
+    
+    results = summarizer.run(keyword, engine, max_articles=20, n_clusters=3)
     
     for result in results:
         print(f"\n{'='*60}")

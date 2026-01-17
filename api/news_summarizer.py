@@ -9,6 +9,9 @@ from dotenv import load_dotenv
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_distances
 
+
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
 load_dotenv()
 
 class NewsSummarizer:

@@ -4,7 +4,14 @@ from openai import OpenAI
 from news_summarizer import NewsSummarizer
 import os
 from dotenv import load_dotenv
+import warnings
 
+# OpenMP 충돌 방지
+os.environ['OMP_NUM_THREADS'] = '1'
+os.environ['KMP_DUPLICATE_LIB_OK'] = 'TRUE'
+
+# 경고 무시
+warnings.filterwarnings('ignore')
 
 st.set_page_config(page_title="ANS", layout="centered")
 

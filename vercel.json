@@ -1,0 +1,16 @@
+{
+  "buildCommand": "npm run build",
+  "devCommand": "npm run dev",
+  "installCommand": "npm install",
+  "framework": "nextjs",
+  "rewrites": [
+    {
+      "source": "/api/summarize",
+      "destination": "/api/python/summarize"
+    },
+    {
+      "source": "/health",
+      "destination": "/api/python/health"
+    }
+  ]
+}

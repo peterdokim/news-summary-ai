@@ -1,12 +1,21 @@
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+.Python
+
+# Environment variables
 .env
+.env.local
+.env*.local
 
 # Conda / venv
 .env/
 .venv/
 venv/
+env/
+ENV/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -16,8 +25,49 @@ venv/
 
 # Mac
 .DS_Store
+*.pem
 
 # Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
 *.log
 
+# Next.js
+/.next/
+/out/
+.next
+
+# Build outputs
+/build
+/dist
+
+# Dependencies
+/node_modules
+/.pnp
+.pnp.js
+
+# Testing
+/coverage
+
+# Vercel
+.vercel
+
+# TypeScript
+*.tsbuildinfo
+next-env.d.ts
+
+# HTML files (if scraped/cached)
 *.html
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Claude Code CLI
+.claude/
+*.claude
+

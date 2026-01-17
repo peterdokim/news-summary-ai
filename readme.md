@@ -1,13 +1,13 @@
-# 🤖 AI News Summarizer
+# ANS - AI News Summarizer
 
-An intelligent news summarization application that scrapes articles from the web and generates concise summaries using Claude AI.
+AI-powered news summarization tool that crawls Naver news, clusters similar articles, and generates intelligent summaries using OpenAI GPT.
 
 ## 🎯 Overview
 
-This application combines web scraping, AI-powered summarization, and an intuitive web interface to help users quickly digest news articles.
+This application combines web scraping, AI-powered clustering, and intelligent summarization to help users quickly understand news trends.
 
 ```
-User Input → BeautifulSoup → Text Processing → Claude API → Streamlit Display
+Next.js Frontend → API Route → Flask Backend → News Crawler + OpenAI Embeddings + GPT Summarization
 ```
 
 ## 🏗️ Architecture
@@ -15,261 +15,193 @@ User Input → BeautifulSoup → Text Processing → Claude API → Streamlit Di
 ### Pipeline Components
 
 #### 1. **Web Scraping Layer** (BeautifulSoup)
-- Extracts article content from news URLs
-- Parses HTML to identify headlines, body text, and metadata
-- Handles multiple news source formats
-- Implements robust error handling
+- Searches and extracts article content from Naver News
+- Parses HTML to identify headlines and body text
+- Handles multiple Naver news formats (general/sports/entertainment)
+- Robust error handling for failed requests
 
-#### 2. **AI Summarization Engine** (Claude API)
-- Generates intelligent, context-aware summaries
-- Configurable summary lengths (short/medium/long)
-- Extracts key points and main ideas
-- Preserves important facts and context
+#### 2. **AI Clustering Engine** (OpenAI + scikit-learn)
+- Converts articles to embeddings using `text-embedding-3-small`
+- Groups similar articles using KMeans clustering
+- Identifies representative articles from each cluster
+- Optimizes content organization
 
-#### 3. **Web Interface** (Streamlit)
-- Clean, user-friendly interface
-- Real-time article processing
-- Side-by-side original vs summary view
-- Export functionality (TXT/PDF)
+#### 3. **AI Summarization Engine** (OpenAI GPT-4o-mini)
+- Generates concise 3-sentence summaries
+- Context-aware and factual
+- Korean language support
+- Preserves key facts and main ideas
+
+#### 4. **Modern Web Interface** (Next.js + Tailwind CSS)
+- Beautiful, responsive UI with animations
+- Real-time search and processing
+- Clustered results view
+- Related articles grouping
 
 ## 🚀 Quick Start
 
 ### Prerequisites
 
-- Python 3.8 or higher
-- Anthropic API key
+- Node.js 16+ and npm
+- Python 3.8+
+- OpenAI API key
 
 ### Installation
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/ai-news-summarizer.git
-cd ai-news-summarizer
-
-# Install dependencies
-pip install -r requirements.txt
+git clone <your-repo-url>
+cd news-summary-ai
 
 # Set up environment variables
-echo "ANTHROPIC_API_KEY=your_api_key_here" > .env
+cp .env.example .env
+# Edit .env and add your OpenAI API key
 
-# Run the application
-streamlit run app.py
+# Install Python dependencies
+pip install -r requirements.txt
+
+# Install Node.js dependencies
+npm install
 ```
 
-### Requirements.txt
+⚠️ **IMPORTANT**: Never commit your `.env` file to git!
 
+### Running the Application
+
+You need to run both servers:
+
+**Terminal 1: Flask Backend**
+```bash
+python server.py
 ```
-beautifulsoup4==4.12.2
-requests==2.31.0
-anthropic==0.25.0
-streamlit==1.32.0
-python-dotenv==1.0.0
+
+**Terminal 2: Next.js Frontend**
+```bash
+npm run dev
 ```
+
+Then open http://localhost:3000 in your browser.
 
 ## 📁 Project Structure
 
 ```
-ai-news-summarizer/
-│
-├── app.py                 # Main Streamlit application
-├── scraper.py            # BeautifulSoup scraping logic
-├── summarizer.py         # Claude API integration
-├── utils.py              # Helper functions
+news-summary-ai/
+├── pages/
+│   ├── index.js          # Home page with search form
+│   ├── news.js           # Results page with clustered summaries
+│   ├── _app.js           # Next.js app wrapper
+│   └── api/
+│       └── search.js     # API route handler
+├── api/
+│   └── news_summarizer.py # News crawler + AI clustering logic
+├── styles/
+│   └── globals.css       # Global styles with Tailwind
+├── server.py             # Flask backend server
+├── .env.example          # Environment variables template
 ├── requirements.txt      # Python dependencies
-├── .env.example         # Environment variables template
-├── README.md            # This file
-│
-├── tests/               # Unit tests
-│   ├── test_scraper.py
-│   └── test_summarizer.py
-│
-└── examples/            # Example articles and outputs
-    └── sample_output.txt
+├── package.json          # Node dependencies
+└── README.md             # This file
 ```
 
-## 💻 Code Examples
+## 💻 How It Works
 
-### Scraping Module (scraper.py)
+1. **User searches** for a keyword on the Next.js frontend
+2. **Frontend API route** (`/api/search`) proxies the request to Flask backend
+3. **Flask backend** receives the search request
+4. **News Crawler** searches Naver and extracts article URLs
+5. **Article Extractor** scrapes full content from each URL
+6. **Embeddings** are generated using OpenAI `text-embedding-3-small`
+7. **KMeans Clustering** groups similar articles together
+8. **GPT-4o-mini** summarizes the representative article from each cluster
+9. **Results** are sent back to frontend and displayed in a beautiful UI
 
-```python
-import requests
-from bs4 import BeautifulSoup
+## 🎨 Features
 
-def scrape_article(url):
-    """
-    Scrapes article content from a given URL.
-    
-    Args:
-        url (str): The URL of the news article
-        
-    Returns:
-        dict: Contains 'title', 'content', and 'date'
-    """
-    try:
-        response = requests.get(url, timeout=10)
-        response.raise_for_status()
-        
-        soup = BeautifulSoup(response.content, 'html.parser')
-        
-        title = soup.find('h1').text.strip()
-        
-        # Find article body (adjust selectors based on target sites)
-        article_body = soup.find('article') or soup.find('div', class_='article-body')
-        content = article_body.get_text(strip=True)
-        
-        return {
-            'title': title,
-            'content': content,
-            'url': url
-        }
-        
-    except Exception as e:
-        return {'error': str(e)}
-```
+- 🔍 **Smart Search**: Keyword-based Naver news search
+- 🤖 **AI Clustering**: Groups similar articles using embeddings
+- 📝 **Intelligent Summaries**: 3-sentence summaries in Korean
+- ⚡ **Real-time Processing**: Live search and summarization
+- 🎯 **Cluster View**: See related articles grouped together
+- 💎 **Modern UI**: Beautiful gradient design with Tailwind CSS
+- 📱 **Responsive**: Works on all device sizes
 
-### Summarization Module (summarizer.py)
+## 🛠️ API Endpoints
 
-```python
-import anthropic
-import os
+### Flask Backend
 
-def summarize_text(text, length="medium"):
-    """
-    Generates a summary of the given text using Claude API.
-    
-    Args:
-        text (str): The article text to summarize
-        length (str): 'short', 'medium', or 'long'
-        
-    Returns:
-        str: The generated summary
-    """
-    client = anthropic.Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
-    
-    length_prompts = {
-        "short": "in 2-3 sentences",
-        "medium": "in 1 paragraph",
-        "long": "in 2-3 paragraphs"
-    }
-    
-    message = client.messages.create(
-        model="claude-sonnet-4-20250514",
-        max_tokens=1000,
-        messages=[{
-            "role": "user",
-            "content": f"Summarize this news article {length_prompts[length]}. Focus on the main points and key facts:\n\n{text}"
-        }]
-    )
-    
-    return message.content[0].text
-```
+- **POST** `/api/summarize` - Summarize news articles
+  ```json
+  {
+    "keyword": "AI",
+    "max_articles": 20,
+    "n_clusters": 3
+  }
+  ```
 
-### Main Application (app.py)
+- **GET** `/health` - Health check
 
-```python
-import streamlit as st
-from scraper import scrape_article
-from summarizer import summarize_text
+### Next.js API Routes
 
-st.set_page_config(page_title="AI News Summarizer", page_icon="🤖")
+- **POST** `/api/search` - Proxy to Flask backend
 
-st.title("🤖 AI News Summarizer")
-st.write("Enter a news article URL to get an intelligent summary")
+## 🔧 Environment Variables
 
-url = st.text_input("📰 Article URL:", placeholder="https://example.com/news/article")
+| Variable | Description | Default |
+|----------|-------------|---------|
+| `OPENAI_API_KEY` | Your OpenAI API key | Required |
+| `PYTHON_API_URL` | Flask backend URL | `http://localhost:5000` |
+| `PORT` | Flask server port | `5000` |
 
-col1, col2 = st.columns([1, 3])
-with col1:
-    length = st.selectbox("Summary Length:", ["short", "medium", "long"])
+## 🚨 Security Notes
 
-if st.button("✨ Summarize", type="primary"):
-    if url:
-        with st.spinner("🔍 Scraping article..."):
-            article = scrape_article(url)
-            
-        if 'error' not in article:
-            with st.spinner("🧠 Generating summary..."):
-                summary = summarize_text(article['content'], length)
-            
-            st.success("✅ Summary generated!")
-            
-            st.subheader("📝 Summary")
-            st.write(summary)
-            
-            with st.expander("📄 Original Article"):
-                st.write(f"**{article['title']}**")
-                st.write(article['content'][:500] + "...")
-        else:
-            st.error(f"❌ Error: {article['error']}")
-    else:
-        st.warning("⚠️ Please enter a URL")
-```
+🔒 **NEVER commit your `.env` file!**
 
-## ✨ Features
+If you accidentally exposed your API key:
+1. Go to https://platform.openai.com/api-keys
+2. Revoke the exposed key
+3. Generate a new key
+4. Update your `.env` file
 
-- ✅ Multi-source news scraping
-- ✅ Adjustable summary length (short/medium/long)
-- ✅ Clean and intuitive UI
-- ✅ Error handling and validation
-- ✅ Side-by-side comparison
-- 🔜 Keyword extraction
-- 🔜 Sentiment analysis
-- 🔜 Export to PDF/Markdown
-- 🔜 Save favorite summaries
+## 🐛 Troubleshooting
 
-## 🛠️ Development Roadmap
+### "Flask 서버에 연결할 수 없습니다"
+- Ensure Flask server is running on port 5000
+- Check `PYTHON_API_URL` in `.env`
 
-### Phase 1: Core Functionality ✅
-- [x] Basic web scraping
-- [x] Claude API integration
-- [x] Streamlit interface
+### "OPENAI_API_KEY가 설정되지 않았습니다"
+- Verify `.env` file exists in project root
+- Check that the API key is valid
 
-### Phase 2: Enhanced Features 🚧
-- [ ] Support for multiple news sources
-- [ ] Batch processing
-- [ ] Summary history
+### No search results
+- Check internet connection
+- Try a different keyword
+- Increase number of articles
 
-### Phase 3: Advanced Features 📋
-- [ ] User accounts and preferences
-- [ ] Custom summarization prompts
-- [ ] RSS feed integration
-- [ ] Chrome extension
+## 🎯 Technologies Used
 
-## 🧪 Testing
+**Frontend:**
+- Next.js 14
+- React 18
+- Tailwind CSS
 
-```bash
-# Run unit tests
-pytest tests/
-
-# Run with coverage
-pytest --cov=. tests/
-```
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+**Backend:**
+- Flask 3.0
+- OpenAI API (GPT-4o-mini, text-embedding-3-small)
+- BeautifulSoup4
+- scikit-learn
+- NumPy
 
 ## 📝 License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+MIT
 
-## 🙏 Acknowledgments
+## 🤝 Contributing
 
-- [BeautifulSoup](https://www.crummy.com/software/BeautifulSoup/) for web scraping
-- [Anthropic Claude](https://www.anthropic.com/) for AI summarization
-- [Streamlit](https://streamlit.io/) for the web framework
+Pull requests are welcome! For major changes, please open an issue first.
 
 ## 📧 Contact
 
-Your Name - [@yourtwitter](https://twitter.com/yourtwitter)
-
-Project Link: [https://github.com/yourusername/ai-news-summarizer](https://github.com/yourusername/ai-news-summarizer)
+Built with ♥ by ANS Team
 
 ---
 

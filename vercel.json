@@ -3,14 +3,10 @@
   "devCommand": "npm run dev",
   "installCommand": "npm install",
   "framework": "nextjs",
-  "rewrites": [
-    {
-      "source": "/api/summarize",
-      "destination": "/api/python/summarize"
-    },
-    {
-      "source": "/health",
-      "destination": "/api/python/health"
+  "functions": {
+    "api/*.py": {
+      "runtime": "python3.9",
+      "maxDuration": 60
     }
-  ]
+  }
 }

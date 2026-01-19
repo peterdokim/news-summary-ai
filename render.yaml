@@ -1,0 +1,29 @@
+services:
+  # Flask Backend
+  - type: web
+    name: ans-backend
+    env: python
+    region: oregon
+    plan: free
+    branch: vercel-deployment
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn server:app
+    envVars:
+      - key: OPENAI_API_KEY
+        sync: false
+
+  # Next.js Frontend
+  - type: web
+    name: ans-frontend
+    env: node
+    region: oregon
+    plan: free
+    branch: vercel-deployment
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: PYTHON_API_URL
+        fromService:
+          type: web
+          name: ans-backend
+          property: host

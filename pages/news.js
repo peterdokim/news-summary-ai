@@ -99,9 +99,14 @@ export default function News() {
                     <div className="flex items-start gap-3 mb-3">
                       <div className="text-3xl">📰</div>
                       <div className="flex-1">
-                        <h3 className="text-xl font-bold text-gray-800 mb-2">
+                        <a
+                          href={cluster.representative_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-xl font-bold text-gray-800 hover:text-purple-600 transition-colors"
+                        >
                           {cluster.representative_title}
-                        </h3>
+                        </a>
                       </div>
                     </div>
 
@@ -117,16 +122,16 @@ export default function News() {
                   </div>
 
                   {/* Related Articles */}
-                  {cluster.related_titles && cluster.related_titles.length > 0 && (
+                  {cluster.related_articles && cluster.related_articles.length > 0 && (
                     <div>
                       <div className="flex items-center gap-2 mb-4">
                         <div className="text-2xl">🔗</div>
                         <h4 className="font-semibold text-gray-700 text-lg">
-                          관련 기사 ({cluster.related_titles.length}개)
+                          관련 기사 ({cluster.related_articles.length}개)
                         </h4>
                       </div>
                       <ul className="space-y-3">
-                        {cluster.related_titles.map((title, idx) => (
+                        {cluster.related_articles.map((article, idx) => (
                           <li
                             key={idx}
                             className="flex items-start gap-3 p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors"
@@ -134,7 +139,14 @@ export default function News() {
                             <span className="text-purple-600 font-semibold flex-shrink-0">
                               {idx + 1}.
                             </span>
-                            <span className="text-gray-700">{title}</span>
+                            <a
+                              href={article.url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="text-gray-700 hover:text-purple-600 transition-colors"
+                            >
+                              {article.title}
+                            </a>
                           </li>
                         ))}
                       </ul>

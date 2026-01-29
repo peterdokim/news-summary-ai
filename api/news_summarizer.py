@@ -304,19 +304,20 @@ class NewsSummarizer:
         else:
             summary = "요약할 내용이 없습니다."
         
-        # 관련 기사 제목 리스트 (대표 기사 제외)
-        related_titles = [
-            article['title'] 
-            for article in cluster['articles'] 
+        # 관련 기사 리스트 (대표 기사 제외) - 제목과 URL 포함
+        related_articles = [
+            {'title': article['title'], 'url': article['url']}
+            for article in cluster['articles']
             if article['title'] != representative['title']
         ]
-        
+
         return {
             'cluster_id': cluster['cluster_id'],
             'size': cluster['size'],
             'summary': summary,
             'representative_title': representative['title'],
-            'related_titles': related_titles
+            'representative_url': representative['url'],
+            'related_articles': related_articles
         }
 
 

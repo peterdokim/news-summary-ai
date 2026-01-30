@@ -9,6 +9,7 @@ from dotenv import load_dotenv
 from sklearn.cluster import KMeans
 from sklearn.metrics.pairwise import cosine_distances
 import logging
+from config import PRESS_LIST
 
 # 로깅 설정
 logging.basicConfig(
@@ -87,7 +88,7 @@ class NewsSummarizer:
         keyword: str, 
         search_engine: str, 
         max_articles: int,
-        naver_news_only: bool = True
+        press_choice: str = None
     ) -> List[str]:
         """
         검색 엔진에서 뉴스 URL 수집
@@ -96,7 +97,8 @@ class NewsSummarizer:
             keyword: 검색 키워드
             search_engine: 검색 엔진 ('네이버' 또는 '다음')
             max_articles: 최대 기사 수
-            naver_news_only: True면 네이버 뉴스 제휴 언론사만 (기본값)
+            press_choice: PRESS_LIST 딕셔너리 키 (예: "1"=경향신문)
+                          None이면 전체 언론사 검색
             
         Returns:
             뉴스 URL 리스트
@@ -122,12 +124,17 @@ class NewsSummarizer:
         encoded = urllib.parse.quote(keyword.strip())
         
         try:
+            press_code = None
+            press_name = None
+            cp = None
+            
+            if press_choice:
+                press_name, press_code, cp = PRESS_LIST[press_choice]
+            
             if search_engine == "네이버":
-                return self._get_naver_news_urls(
-                    encoded, max_articles, naver_news_only
-                    )
-            else:  # 다음
-                return self._get_daum_news_urls(encoded, max_articles)
+                return self._get_naver_news_urls(encoded, max_articles, press_code)
+            elif search_engine == "다음":
+                return self._get_daum_news_urls(encoded, max_articles, press_name, cp)
         except requests.RequestException as e:
             raise NewsSearchError(f"뉴스 검색 중 네트워크 오류: {e}")
         except Exception as e:
@@ -137,7 +144,7 @@ class NewsSummarizer:
         self, 
         encoded_keyword: str, 
         max_articles: int,
-        naver_news_only: bool = True
+        press_code: str = None
     ) -> List[str]:
         """네이버 뉴스 검색에서 기사 URL 수집 (페이지네이션 지원)"""
         
@@ -145,10 +152,20 @@ class NewsSummarizer:
         start = 1
         
         while len(news_urls) < max_articles:
-            base_url = f"https://search.naver.com/search.naver?where=news&query={encoded_keyword}&start={start}"
-            
-            if naver_news_only:
-                base_url += "&sm=tab_opt&sort=0&pd=-1&ds=&de=&service_area=1"
+            # 언론사 필터가 있으면 새 URL 형식 사용
+            if press_code:
+                base_url = (
+                    f"https://search.naver.com/search.naver?"
+                    f"ssc=tab.news.all&query={encoded_keyword}&start={start}"
+                    f"&sm=tab_opt&sort=0&mynews=1&office_type=2"
+                    f"&office_section_code=1&news_office_checked={press_code}&service_area=0"
+                )
+            else:
+                base_url = (
+                    f"https://search.naver.com/search.naver?where=news"
+                    f"&query={encoded_keyword}&start={start}"
+                    f"&sm=tab_opt&sort=0&pd=-1&ds=&de=&service_area=1"
+                )
             
             resp = requests.get(base_url, headers=self.headers, timeout=10)
             resp.raise_for_status()
@@ -198,14 +215,25 @@ class NewsSummarizer:
     def _get_daum_news_urls(
         self, 
         encoded_keyword: str, 
-        max_articles: int
+        max_articles: int,
+        press_name: str = None,
+        cp: str = None
     ) -> List[str]:
         """다음 뉴스 URL 수집"""
-        base_url = (
-            f"https://search.daum.net/search?"
-            f"nil_suggest=btn&w=news&DA=SBC&cluster=y&q={encoded_keyword}"
-        )
-        
+        if press_name and cp:
+            encoded_press = urllib.parse.quote(press_name)
+            base_url = (
+                f"https://search.daum.net/search?"
+                f"w=news&DA=STC&cluster=y&q={encoded_keyword}"
+                f"&cp={cp}&cpname={encoded_press}"
+            )
+        else:
+            base_url = (
+                f"https://search.daum.net/search?"
+                f"nil_suggest=btn&w=news&DA=SBC&cluster=y&q={encoded_keyword}"
+            )
+        print(f"[DEBUG] press_name: {press_name}")
+        print(f"[DEBUG] base_url: {base_url}")
         news_urls = []
         page = 1
         max_pages = 10  # 무한 루프 방지
@@ -354,7 +382,8 @@ class NewsSummarizer:
         self, 
         keyword: str, 
         search_engine: str, 
-        max_articles: int = 5
+        max_articles: int = 5,
+        press_choice: str = None
     ) -> List[Dict[str, str]]:
         """
         키워드로 뉴스 검색 → 모든 기사 본문 추출
@@ -363,11 +392,13 @@ class NewsSummarizer:
             keyword: 검색 키워드
             search_engine: 검색 엔진 (포털 사이트)
             max_articles: 최대 기사 수
+            press_choice: PRESS_LIST 딕셔너리 키 (예: "1"=경향신문)
+                          None이면 전체 언론사 검색
         
         Returns:
             기사 정보 리스트 (제목, 본문, URL 등)
         """
-        urls = self.get_news_url(keyword, search_engine, max_articles)
+        urls = self.get_news_url(keyword, search_engine, max_articles, press_choice)
         
         if not urls:
             logger.info(f"'{keyword}'에 대한 뉴스 URL을 찾지 못했습니다.")
@@ -696,7 +727,8 @@ class NewsSummarizer:
         keyword: str, 
         search_engine: str, 
         max_articles: int = 20, 
-        n_clusters: int = 3
+        n_clusters: int = 3,
+        press_choice: str = None
     ) -> List[Dict]:
         """
         전체 파이프라인 실행: 크롤링 -> 임베딩 -> 클러스터링 -> 요약
@@ -706,6 +738,8 @@ class NewsSummarizer:
             search_engine: 검색 엔진 (포털 사이트)
             max_articles: 최대 크롤링 기사 수
             n_clusters: 클러스터 개수
+            press_choice: PRESS_LIST 딕셔너리 키 (예: "1"=경향신문)
+                          None이면 전체 언론사 검색
 
         Returns:
             클러스터별 요약 결과 리스트
@@ -721,7 +755,7 @@ class NewsSummarizer:
         # 1. 크롤링
         logger.info("1단계: 뉴스 크롤링...")
         try:
-            articles = self.crawl_news(keyword, search_engine, max_articles)
+            articles = self.crawl_news(keyword, search_engine, max_articles, press_choice)
         except NewsSearchError as e:
             logger.error(f"크롤링 실패: {e}")
             raise
@@ -795,8 +829,20 @@ if __name__ == "__main__":
         if engine not in ('네이버', '다음'):
             print("❌ '네이버' 또는 '다음'을 입력해주세요.")
             exit(1)
-        
-        results = summarizer.run(keyword, engine, max_articles=20, n_clusters=3)
+            
+        press_choice = None
+
+        print("\n언론사를 선택하세요:")
+        print("  0. 전체 (필터 없음)")
+        for key, values in PRESS_LIST.items():
+            print(f"  {key}. {values[0]}")
+
+        choice = input("\n선택 (번호): ").strip()
+        if choice != "0" and choice in PRESS_LIST:
+            press_choice = choice
+            print(f"✅ {PRESS_LIST[choice][0]} 선택됨")
+
+        results = summarizer.run(keyword, engine, max_articles=20, n_clusters=3, press_choice=press_choice)
         print_results(results)
         
     except ValueError as e:

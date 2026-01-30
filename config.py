@@ -1,0 +1,21 @@
+# (표시이름, 네이버코드, 다음cp코드)
+PRESS_LIST = {
+    "1": ("경향신문", "1032", "16akMkKFDu6n8GTzZr"),
+    "2": ("국민일보", "1005", "16tZcm4AixcQK6HoII"),
+    "3": ("동아일보", "1020", "16bOiOx4gG2S18EPLj"),
+    "4": ("매일경제", "1009", "16O8sbGdUflWYlfqu4"),
+    "5": ("시사IN", "1308", "1603Z_6Ws6-hC9rOuK"),
+    "6": ("연합뉴스", "1001", "16X5Xh1MWS7Qt1sMrW"),
+    "7": ("조선일보", "1023", "16d4PV266g2j-N3GYq"),
+    "8": ("중앙일보", "1025", "16Elf9uX5H6T5xXvQV"),
+    "9": ("한겨레", "1028", "16nzyJHdH5ORpabfqG"),
+    "10": ("한국경제", "1015", "16FyB2ukEzHjC3cheN"),
+    "11": ("한국일보", "1469", "16EHDaTZuBrB2mZe7x"),
+    "12": ("KBS", "1056", "16hWxJmTql2y9rxiuO"),
+    "13": ("JTBC", "1437", "16yZfDfR_rGcw5F-P0"),
+    "14": ("MBC", "1214", "16rWBpLEPYeXGqyGdJ"),
+    "15": ("OSEN", "1109", "16Tr4PLF2A9hpwE3H3"),
+    "16": ("SBS", "1055", "16cbDjQQ7Cml-neLY_"),
+    "17": ("TV조선", "1448", "16NwRUANgKg3sbZJzW"),
+    "18": ("YTN", "1052", "16jhhOdk47nI-0Acff"),
+}

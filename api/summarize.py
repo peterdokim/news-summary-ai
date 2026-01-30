@@ -45,6 +45,7 @@ class handler(BaseHTTPRequestHandler):
             summarizer = get_summarizer()
             results = summarizer.run(
                 keyword=keyword,
+                search_engine=search_engine,
                 max_articles=max_articles,
                 n_clusters=n_clusters
             )

@@ -7,7 +7,7 @@ export default function Home() {
   const router = useRouter();
   const [keyword, setKeyword] = useState('');
   const [source, setSource] = useState('naver');
-  const [limit, setLimit] = useState(5);
+  const [limit, setLimit] = useState(20);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -103,7 +103,7 @@ export default function Home() {
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none cursor-pointer transition-all bg-black hover:border-purple-300"
                     >
                       <option value="naver">🔍 Naver</option>
-                      <option value="google">🌐 Google</option>
+                      <option value="daum">🌐 Daum</option>
                     </select>
                   </div>
 
@@ -116,8 +116,6 @@ export default function Home() {
                       onChange={(e) => setLimit(Number(e.target.value))}
                       className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl focus:border-purple-500 focus:ring-4 focus:ring-purple-100 outline-none cursor-pointer transition-all bg-black hover:border-purple-300"
                     >
-                      <option value={5}>5개 기사</option>
-                      <option value={10}>10개 기사</option>
                       <option value={20}>20개 기사</option>
                     </select>
                   </div>

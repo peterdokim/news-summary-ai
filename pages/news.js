@@ -9,6 +9,7 @@ export default function News() {
   const [loading, setLoading] = useState(true);
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [searchHistory, setSearchHistory] = useState([]);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   useEffect(() => {
     const storedResults = sessionStorage.getItem('newsResults');
@@ -89,74 +90,90 @@ export default function News() {
       <div className="flex h-screen bg-gray-50 overflow-hidden">
 
           {/* ── Sidebar ── */}
-        <aside className="w-60 flex-shrink-0 bg-gray-900 text-white flex flex-col overflow-y-auto">
+        <aside className={`${sidebarOpen ? 'w-60' : 'w-12'} flex-shrink-0 bg-gray-900 text-white hidden md:flex flex-col overflow-hidden transition-all duration-300`}>
 
-          {/* Logo */}
-          <Link href="/">
-            <div className="flex items-center gap-3 px-4 py-5 hover:bg-gray-800 transition-colors cursor-pointer">
-              <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center font-black text-sm select-none">
-                A
-              </div>
-              <div>
-                <div className="font-black tracking-widest text-base leading-tight">A N S</div>
-                <div className="text-xs text-gray-400 leading-tight">AI News Summarizer</div>
-              </div>
-            </div>
-          </Link>
+          {/* Toggle button */}
+          <div className={`flex ${sidebarOpen ? 'justify-end px-2' : 'justify-center'} pt-3 pb-1`}>
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="p-1.5 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d={sidebarOpen ? "M15 19l-7-7 7-7" : "M9 5l7 7-7 7"} />
+              </svg>
+            </button>
+          </div>
 
-          {/* Nav */}
-          <nav className="px-2 pb-3 border-b border-gray-800">
-            <Link href="/">
-              <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white cursor-pointer transition-colors">
-                <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-                </svg>
-                <span className="text-sm font-medium">뉴스 검색</span>
-              </div>
-            </Link>
-          </nav>
+          {sidebarOpen && (
+            <>
+              {/* Logo */}
+              <Link href="/">
+                <div className="flex items-center gap-3 px-4 py-3 hover:bg-gray-800 transition-colors cursor-pointer">
+                  <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-blue-500 rounded-lg flex items-center justify-center font-black text-sm select-none">
+                    A
+                  </div>
+                  <div>
+                    <div className="font-black tracking-widest text-base leading-tight">A N S</div>
+                    <div className="text-xs text-gray-400 leading-tight">AI News Summarizer</div>
+                  </div>
+                </div>
+              </Link>
 
-          {/* Search History */}
-          <div className="flex-1 overflow-y-auto px-2 pt-3 pb-4">
-            <div className="flex items-center justify-between px-3 mb-2">
-              <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">최근 검색</span>
-              {searchHistory.length > 0 && (
-                <button onClick={clearHistory} className="text-xs text-gray-600 hover:text-gray-300 transition-colors">
-                  전체 삭제
-                </button>
-              )}
-            </div>
-            {searchHistory.length === 0 ? (
-              <div className="px-3 py-6 text-center text-gray-600 text-xs">검색 기록이 없습니다</div>
-            ) : (
-              <div className="space-y-0.5">
-                {searchHistory.map((entry) => (
-                  <button
-                    key={entry.id}
-                    onClick={() => handleHistoryClick(entry)}
-                    className="w-full text-left flex items-start gap-2 px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors group"
-                  >
-                    <svg className="w-3.5 h-3.5 text-gray-600 mt-0.5 flex-shrink-0 group-hover:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+              {/* Nav */}
+              <nav className="px-2 pb-3 border-b border-gray-800">
+                <Link href="/">
+                  <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white cursor-pointer transition-colors">
+                    <svg className="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
                     </svg>
-                    <div className="min-w-0 flex-1">
-                      <div className="text-sm text-gray-300 truncate group-hover:text-white font-medium">{entry.keyword}</div>
-                      <div className="text-xs text-gray-600 mt-0.5">{entry.source === 'naver' ? 'Naver' : 'Daum'} · {entry.limit}개 · {entry.timestamp}</div>
-                    </div>
-                    <button onClick={(e) => removeHistoryEntry(entry.id, e)} className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-gray-300 transition-all flex-shrink-0 p-0.5">
-                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                      </svg>
-                    </button>
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
+                    <span className="text-sm font-medium">뉴스 검색</span>
+                  </div>
+                </Link>
+              </nav>
 
-          <div className="px-4 py-3 border-t border-gray-800">
-            <p className="text-xs text-gray-600">Powered by OpenAI</p>
-          </div>
+              {/* Search History */}
+              <div className="flex-1 overflow-y-auto px-2 pt-3 pb-4">
+                <div className="flex items-center justify-between px-3 mb-2">
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wider">최근 검색</span>
+                  {searchHistory.length > 0 && (
+                    <button onClick={clearHistory} className="text-xs text-gray-600 hover:text-gray-300 transition-colors">
+                      전체 삭제
+                    </button>
+                  )}
+                </div>
+                {searchHistory.length === 0 ? (
+                  <div className="px-3 py-6 text-center text-gray-600 text-xs">검색 기록이 없습니다</div>
+                ) : (
+                  <div className="space-y-0.5">
+                    {searchHistory.map((entry) => (
+                      <button
+                        key={entry.id}
+                        onClick={() => handleHistoryClick(entry)}
+                        className="w-full text-left flex items-start gap-2 px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors group"
+                      >
+                        <svg className="w-3.5 h-3.5 text-gray-600 mt-0.5 flex-shrink-0 group-hover:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <div className="min-w-0 flex-1">
+                          <div className="text-sm text-gray-300 truncate group-hover:text-white font-medium">{entry.keyword}</div>
+                          <div className="text-xs text-gray-600 mt-0.5">{entry.source === 'naver' ? 'Naver' : 'Daum'} · {entry.limit}개 · {entry.timestamp}</div>
+                        </div>
+                        <button onClick={(e) => removeHistoryEntry(entry.id, e)} className="opacity-0 group-hover:opacity-100 text-gray-600 hover:text-gray-300 transition-all flex-shrink-0 p-0.5">
+                          <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                          </svg>
+                        </button>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="px-4 py-3 border-t border-gray-800">
+                <p className="text-xs text-gray-600">Powered by OpenAI</p>
+              </div>
+            </>
+          )}
         </aside>
 
         {/* ── Article List Panel ── */}
@@ -192,7 +209,7 @@ export default function News() {
                     : 'border-transparent hover:bg-gray-50 hover:border-gray-100'
                 }`}
               >
-                <div className="flex gap-2.5">
+                <div className="flex flex-col md:flex-row gap-3 items-start">
                   {cluster.representative_image && (
                     <img
                       src={cluster.representative_image}
@@ -226,7 +243,7 @@ export default function News() {
         </div>
 
         {/* ── Summary Panel ── */}
-        <main className="flex-1 overflow-y-auto bg-gray-50">
+        <main className="md:ml-60flex-1 overflow-y-auto bg-gray-50">
           {!selected ? (
             <div className="flex items-center justify-center h-full text-gray-400 text-sm">
               기사를 선택하세요

@@ -22,7 +22,7 @@ export default async function handler(req, res) {
       body: JSON.stringify({
         keyword: keyword.trim(),
         max_articles: limit || 20,
-        n_clusters: 3,
+        n_clusters: 5,
         search_engine: source === 'naver' ? '네이버' : '다음',
       }),
     });

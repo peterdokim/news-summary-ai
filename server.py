@@ -3,12 +3,28 @@ from flask_cors import CORS
 from api.news_summarizer import NewsSummarizer
 import os
 import traceback
+import threading
+import uuid
+import time
 
 app = Flask(__name__)
 CORS(app)
 
 # Initialize the news summarizer
 summarizer = NewsSummarizer()
+
+# Background job store
+jobs = {}
+jobs_lock = threading.Lock()
+
+
+def cleanup_old_jobs():
+    """Remove jobs older than 30 minutes."""
+    cutoff = time.time() - 1800
+    with jobs_lock:
+        expired = [jid for jid, j in jobs.items() if j['created_at'] < cutoff]
+        for jid in expired:
+            del jobs[jid]
 
 @app.route('/api/summarize', methods=['POST'])
 def summarize_news():
@@ -39,11 +55,14 @@ def summarize_news():
             }), 400
 
         max_articles = data.get('max_articles', 20)
+        
         n_clusters = data.get('n_clusters', 3)
+        search_engine = data.get('search_engine', '네이버')
 
         # Run the summarizer
         results = summarizer.run(
             keyword=keyword,
+            search_engine=search_engine,
             max_articles=max_articles,
             n_clusters=n_clusters
         )
@@ -57,6 +76,7 @@ def summarize_news():
         return jsonify({
             'success': True,
             'keyword': keyword,
+            'search_engine': search_engine,
             'results': results,
             'total_clusters': len(results)
         }), 200
@@ -84,6 +104,86 @@ def summarize_news():
             'error': '서버 오류가 발생했습니다.',
             'details': error_msg
         }), 500
+
+@app.route('/api/summarize-start', methods=['POST'])
+def summarize_start():
+    """Start a background summarization job and return a job_id immediately."""
+    data = request.get_json()
+    if not data:
+        return jsonify({'success': False, 'error': 'No JSON data provided'}), 400
+
+    keyword = data.get('keyword')
+    if not keyword:
+        return jsonify({'success': False, 'error': '검색어를 입력해주세요'}), 400
+
+    max_articles = data.get('max_articles', 20)
+    n_clusters = data.get('n_clusters', 3)
+    search_engine = data.get('search_engine', '네이버')
+
+    job_id = str(uuid.uuid4())
+    with jobs_lock:
+        jobs[job_id] = {
+            'progress': 0,
+            'message': '시작 중...',
+            'result': None,
+            'error': None,
+            'done': False,
+            'keyword': keyword,
+            'search_engine': search_engine,
+            'created_at': time.time(),
+        }
+
+    def run_job():
+        def progress_callback(percent, message):
+            with jobs_lock:
+                if job_id in jobs:
+                    jobs[job_id]['progress'] = percent
+                    jobs[job_id]['message'] = message
+
+        try:
+            results = summarizer.run(
+                keyword=keyword,
+                search_engine=search_engine,
+                max_articles=max_articles,
+                n_clusters=n_clusters,
+                progress_callback=progress_callback,
+            )
+            with jobs_lock:
+                jobs[job_id]['result'] = results
+                jobs[job_id]['done'] = True
+        except Exception as e:
+            error_msg = str(e)
+            print(f"Job {job_id} error: {error_msg}")
+            traceback.print_exc()
+            with jobs_lock:
+                jobs[job_id]['error'] = error_msg
+                jobs[job_id]['done'] = True
+        finally:
+            cleanup_old_jobs()
+
+    thread = threading.Thread(target=run_job, daemon=True)
+    thread.start()
+
+    return jsonify({'success': True, 'job_id': job_id}), 202
+
+
+@app.route('/api/progress/<job_id>', methods=['GET'])
+def get_progress(job_id):
+    """Return current progress of a background summarization job."""
+    with jobs_lock:
+        job = jobs.get(job_id)
+    if not job:
+        return jsonify({'error': 'Job not found'}), 404
+    return jsonify({
+        'progress': job['progress'],
+        'message': job['message'],
+        'done': job['done'],
+        'error': job['error'],
+        'result': job['result'] if job['done'] and not job['error'] else None,
+        'keyword': job['keyword'],
+        'search_engine': job['search_engine'],
+    })
+
 
 @app.route('/health', methods=['GET'])
 def health_check():

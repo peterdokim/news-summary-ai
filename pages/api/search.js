@@ -13,18 +13,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    // Call Python backend API
-    // In production (Vercel), use relative URL; in development, use localhost
     const pythonApiUrl = process.env.PYTHON_API_URL || (process.env.NODE_ENV === 'production' ? '' : 'http://localhost:5000');
-    const response = await fetch(`${pythonApiUrl}/api/summarize`, {
+    const response = await fetch(`${pythonApiUrl}/api/summarize-start`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         keyword: keyword.trim(),
         max_articles: limit || 5,
-        n_clusters: 3
+        n_clusters: 3,
+        search_engine: source === 'naver' ? '네이버' : '다음',
       }),
     });
 
@@ -34,13 +31,12 @@ export default async function handler(req, res) {
 
     const data = await response.json();
 
-    return res.status(200).json({
+    return res.status(202).json({
       success: true,
+      job_id: data.job_id,
       keyword,
       source,
       limit,
-      results: data.results || data,
-      timestamp: new Date().toISOString()
     });
 
   } catch (error) {

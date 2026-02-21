@@ -147,11 +147,7 @@ class NewsSummarizer:
         self, 
         encoded_keyword: str, 
         max_articles: int,
-<<<<<<< HEAD
         press_code: str = None
-=======
-        naver_news_only: bool = True
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
     ) -> List[str]:
         """네이버 뉴스 검색에서 기사 URL 수집 (페이지네이션 지원)"""
         
@@ -159,7 +155,6 @@ class NewsSummarizer:
         start = 1
         
         while len(news_urls) < max_articles:
-<<<<<<< HEAD
             # 언론사 필터가 있으면 새 URL 형식 사용
             if press_code:
                 base_url = (
@@ -174,12 +169,6 @@ class NewsSummarizer:
                     f"&query={encoded_keyword}&start={start}"
                     f"&sm=tab_opt&sort=0&pd=-1&ds=&de=&service_area=1"
                 )
-=======
-            base_url = f"https://search.naver.com/search.naver?where=news&query={encoded_keyword}&start={start}"
-            
-            if naver_news_only:
-                base_url += "&sm=tab_opt&sort=0&pd=-1&ds=&de=&service_area=1"
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
             
             resp = requests.get(base_url, headers=self.headers, timeout=10)
             resp.raise_for_status()
@@ -229,7 +218,6 @@ class NewsSummarizer:
     def _get_daum_news_urls(
         self, 
         encoded_keyword: str, 
-<<<<<<< HEAD
         max_articles: int,
         press_name: str = None,
         cp: str = None
@@ -249,16 +237,6 @@ class NewsSummarizer:
             )
         print(f"[DEBUG] press_name: {press_name}")
         print(f"[DEBUG] base_url: {base_url}")
-=======
-        max_articles: int
-    ) -> List[str]:
-        """다음 뉴스 URL 수집"""
-        base_url = (
-            f"https://search.daum.net/search?"
-            f"nil_suggest=btn&w=news&DA=SBC&cluster=y&q={encoded_keyword}"
-        )
-        
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
         news_urls = []
         page = 1
         max_pages = 10  # 무한 루프 방지
@@ -279,11 +257,7 @@ class NewsSummarizer:
             soup = BeautifulSoup(resp.text, "html.parser")
             
             found_in_page = 0
-<<<<<<< HEAD
             for a_tag in soup.select('a[href*="v.daum.net/v/"]'):
-=======
-            for a_tag in soup.select("strong.tit-g.clamp-g > a[href]"):
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
                 href = a_tag.get("href", "")
                 
                 if not href:
@@ -334,11 +308,7 @@ class NewsSummarizer:
             title_elem = (
                 soup.select_one("#title_area") or
                 soup.select_one('h2.ArticleHead_article_title__qh8GV') or
-<<<<<<< HEAD
                 soup.select_one('.tit_g')
-=======
-                soup.select_one('h3.tit_view')
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
             )
 
             title = title_elem.get_text(strip=True) if title_elem else None
@@ -353,11 +323,7 @@ class NewsSummarizer:
             article = (
                 soup.select_one("#dic_area") or
                 soup.select_one("div._article_content") or
-<<<<<<< HEAD
                 soup.select_one(".article_view")
-=======
-                soup.select_one("section[dmcf-sid]")
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
             )
             text = None
 
@@ -436,19 +402,12 @@ class NewsSummarizer:
             }
         
     def crawl_news(
-<<<<<<< HEAD
         self,
         keyword: str,
         search_engine: str,
         max_articles: int = 5,
         press_choice: str = None,
         progress_callback=None
-=======
-        self, 
-        keyword: str, 
-        search_engine: str, 
-        max_articles: int = 5
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
     ) -> List[Dict[str, str]]:
         """
         키워드로 뉴스 검색 → 모든 기사 본문 추출
@@ -464,7 +423,6 @@ class NewsSummarizer:
         Returns:
             기사 정보 리스트 (제목, 본문, URL 등)
         """
-<<<<<<< HEAD
         urls = self.get_news_url(keyword, search_engine, max_articles, press_choice)
 
         if not urls:
@@ -478,17 +436,6 @@ class NewsSummarizer:
         articles = []
         success_count = 0
 
-=======
-        urls = self.get_news_url(keyword, search_engine, max_articles)
-        
-        if not urls:
-            logger.info(f"'{keyword}'에 대한 뉴스 URL을 찾지 못했습니다.")
-            return []
-
-        articles = []
-        success_count = 0
-        
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
         for i, url in enumerate(urls, 1):
             logger.info(f"기사 추출 중... ({i}/{len(urls)})")
             result = self.extract_news_article(url)
@@ -497,7 +444,6 @@ class NewsSummarizer:
             if result['success']:
                 success_count += 1
 
-<<<<<<< HEAD
             if result['success']:
                 success_count += 1
 
@@ -505,8 +451,6 @@ class NewsSummarizer:
                 percent = 5 + int(i / total * 55)  # 5→60
                 progress_callback(percent, f'기사 수집 중... ({i}/{total})')
 
-=======
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
         logger.info(f"기사 추출 완료: {success_count}/{len(urls)} 성공")
         return articles
 
@@ -610,10 +554,7 @@ class NewsSummarizer:
                 break
         
         raise EmbeddingError(f"임베딩 생성 실패: {last_error}")
-<<<<<<< HEAD
     
-=======
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
     def cluster_articles(
         self, 
         embeddings: np.ndarray, 
@@ -695,10 +636,7 @@ class NewsSummarizer:
             cluster['cluster_id'] = i
             
         return clusters
-<<<<<<< HEAD
     
-=======
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
     def summarize_cluster(
         self, 
         cluster: Dict, 
@@ -783,13 +721,8 @@ class NewsSummarizer:
         
         # 관련 기사 제목 리스트 (대표 기사 제외)
         rep_title = representative.get('title')
-<<<<<<< HEAD
         related_titles = [
             article.get('title') 
-=======
-        related_articles = [
-            {'title' : article.get('title'), 'url': article.get('url')}
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
             for article in cluster.get('articles', []) 
             if article.get('title') and article.get('title') != rep_title
         ]
@@ -800,15 +733,10 @@ class NewsSummarizer:
             'summary': summary,
             'representative_title': rep_title or '제목 없음',
             'representative_url': representative.get('url', ''),
-<<<<<<< HEAD
             'representative_image': representative.get('image') or '',
             'related_titles': related_titles
         }
 
-=======
-            'related_articles': related_articles
-        }
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
     def summarize_all_clusters(self, clusters: List[Dict]) -> List[Dict]:
         """
         모든 클러스터 요약
@@ -832,7 +760,6 @@ class NewsSummarizer:
         return results
     
     def run(
-<<<<<<< HEAD
         self,
         keyword: str,
         search_engine: str,
@@ -840,24 +767,13 @@ class NewsSummarizer:
         n_clusters: int = 3,
         press_choice: str = None,
         progress_callback=None
-=======
-        self, 
-        keyword: str, 
-        search_engine: str = "네이버",
-        max_articles: int = 20, 
-        n_clusters: int = 3
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
     ) -> List[Dict]:
         """
         전체 파이프라인 실행: 크롤링 -> 임베딩 -> 클러스터링 -> 요약
 
         Args:
             keyword: 검색 키워드
-<<<<<<< HEAD
             search_engine: 검색 엔진 (포털 사이트)
-=======
-            search_engine: 검색 엔진 (포털 사이트, 기본값: 네이버)
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
             max_articles: 최대 크롤링 기사 수
             n_clusters: 클러스터 개수
             press_choice: PRESS_LIST 딕셔너리 키 (예: "1"=경향신문)
@@ -866,11 +782,6 @@ class NewsSummarizer:
 
         Returns:
             클러스터별 요약 결과 리스트
-<<<<<<< HEAD
-
-=======
-            
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
         Raises:
             ValueError: 입력값이 유효하지 않은 경우
             NewsSearchError: 뉴스 검색 실패 시
@@ -878,7 +789,6 @@ class NewsSummarizer:
             ClusteringError: 클러스터링 실패 시
         """
         logger.info(f"=== 뉴스 요약 시작: '{keyword}' ({search_engine}) ===")
-<<<<<<< HEAD
 
         # 1. 크롤링
         logger.info("1단계: 뉴스 크롤링...")
@@ -890,17 +800,6 @@ class NewsSummarizer:
             logger.error(f"크롤링 실패: {e}")
             raise
 
-=======
-        
-        # 1. 크롤링
-        logger.info("1단계: 뉴스 크롤링...")
-        try:
-            articles = self.crawl_news(keyword, search_engine, max_articles)
-        except NewsSearchError as e:
-            logger.error(f"크롤링 실패: {e}")
-            raise
-        
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
         # 2. 유효한 기사 필터링
         logger.info("2단계: 기사 데이터 준비...")
         valid_articles, texts = self.prepare_articles_for_embedding(articles)
@@ -908,7 +807,6 @@ class NewsSummarizer:
         if len(valid_articles) == 0:
             logger.warning(f"'{keyword}'에 대한 유효한 뉴스 기사가 없습니다.")
             return []
-<<<<<<< HEAD
 
         logger.info(f"유효한 기사: {len(valid_articles)}개")
 
@@ -916,35 +814,21 @@ class NewsSummarizer:
         logger.info("3단계: 임베딩 생성...")
         if progress_callback:
             progress_callback(62, f'임베딩 생성 중... ({len(valid_articles)}개 기사)')
-=======
-        
-        logger.info(f"유효한 기사: {len(valid_articles)}개")
-        
-        # 3. 임베딩
-        logger.info("3단계: 임베딩 생성...")
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
         try:
             embeddings = self.get_embeddings(texts)
         except EmbeddingError as e:
             logger.error(f"임베딩 실패: {e}")
             raise
-<<<<<<< HEAD
 
         # 4. 클러스터링
         logger.info("4단계: 클러스터링...")
         if progress_callback:
             progress_callback(72, '클러스터링 중...')
-=======
-        
-        # 4. 클러스터링
-        logger.info("4단계: 클러스터링...")
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
         try:
             clusters = self.cluster_articles(embeddings, valid_articles, n_clusters)
         except ClusteringError as e:
             logger.error(f"클러스터링 실패: {e}")
             raise
-<<<<<<< HEAD
 
         # 5. 요약 (클러스터별 진행 표시)
         logger.info("5단계: 요약 생성...")
@@ -1013,49 +897,6 @@ if __name__ == "__main__":
 
         results = summarizer.run(keyword, engine, max_articles=20, n_clusters=3, press_choice=press_choice)
         print_results(results)
-=======
-        
-        # 5. 요약
-        logger.info("5단계: 요약 생성...")
-        results = self.summarize_all_clusters(clusters)
-        
-        logger.info(f"=== 완료: {len(results)}개 그룹 생성 ===")
-        
-        return results
-
-if __name__ == "__main__":
-    try:
-        summarizer = NewsSummarizer()
-
-        keyword = input("검색어를 입력하세요: ").strip()
-        if not keyword:
-            print("❌ 검색어를 입력해주세요.")
-            exit(1)
-            
-        engine = input("검색엔진 (네이버/다음, 기본값: 네이버): ").strip() or "네이버"
-        if engine not in ('네이버', '다음'):
-            print("❌ '네이버' 또는 '다음'을 입력해주세요.")
-            exit(1)
-        
-        results = summarizer.run(keyword, engine, max_articles=20, n_clusters=3)
-        
-        if not results:
-            print("\n❌ 결과가 없습니다.")
-        else:
-            for result in results:
-                print(f"\n{'='*60}")
-                print(f"[그룹 {result['cluster_id'] + 1}] - {result['size']}개 기사")
-                print(f"{'='*60}")
-                print(f"\n📰 대표 기사: {result['representative_title']}")
-                if result.get('representative_url'):
-                    print(f"   🔗 {result['representative_url']}")
-                print(f"\n📝 요약:\n{result['summary']}")
-                
-                if result['related_titles']:
-                    print(f"\n🔗 관련 기사:")
-                    for title in result['related_titles']:
-                        print(f"   - {title}")
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02
         
     except ValueError as e:
         print(f"\n❌ 설정 오류: {e}")
@@ -1068,10 +909,6 @@ if __name__ == "__main__":
     except KeyboardInterrupt:
         print("\n\n⚠️ 사용자에 의해 중단되었습니다.")
     except Exception as e:
-<<<<<<< HEAD
         print(f"\n❌ 예상치 못한 오류: {e}")
    
     
-=======
-        print(f"\n❌ 예상치 못한 오류: {e}")
->>>>>>> 0c059a528d42d6e18278a3c3332f8f6642341c02

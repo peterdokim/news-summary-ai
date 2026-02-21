@@ -48,6 +48,7 @@ def summarize_news():
         sum_instance = get_summarizer()
         results = sum_instance.run(
             keyword=keyword,
+            search_engine=search_engine,
             max_articles=max_articles,
             n_clusters=n_clusters
         )

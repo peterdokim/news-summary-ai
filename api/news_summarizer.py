@@ -444,8 +444,6 @@ class NewsSummarizer:
             if result['success']:
                 success_count += 1
 
-            if result['success']:
-                success_count += 1
 
             if progress_callback:
                 percent = 5 + int(i / total * 55)  # 5→60
@@ -559,7 +557,7 @@ class NewsSummarizer:
         self, 
         embeddings: np.ndarray, 
         articles: List[Dict],
-        n_clusters: int = 3
+        n_clusters: int = 5
     ) -> List[Dict]:
         """
         임베딩 벡터를 기반으로 기사들을 클러스터링

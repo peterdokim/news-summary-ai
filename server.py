@@ -38,6 +38,12 @@ def cleanup_old_jobs():
         expired = [jid for jid, j in jobs.items() if j['created_at'] < cutoff]
         for jid in expired:
             del jobs[jid]
+            
+@app.route('/')
+@app.route('/api/health')
+def health():
+    return {'status': 'ok'}, 200
+
 
 @app.route('/api/summarize', methods=['POST'])
 def summarize_news():

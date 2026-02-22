@@ -292,6 +292,7 @@ class NewsSummarizer:
                 'url': url,
                 'title': None,
                 'text': None,
+                'image_url': None,
                 'success': False,
                 'error': 'URL이 비어있습니다.',
             }
@@ -310,6 +311,16 @@ class NewsSummarizer:
         
             title = title_elem.get_text(strip=True) if title_elem else None
 
+            # 이미지 추출 (decompose 이전에 먼저 수행)
+            image_url = None
+            img_tag = soup.find('img', id='img1')  # 네이버 일반 뉴스
+            if not img_tag:
+                img_tag = soup.find('img', {'data-nimg': '1', 'fetchpriority': 'high'})  # 네이버 연예/스포츠
+            if not img_tag:
+                img_tag = soup.find('img', class_='thumb_g_article')  # 다음 뉴스
+            if img_tag:
+                image_url = img_tag.get('data-org-src') or img_tag.get('src')
+
             # 본문 추출
             article = (
                 soup.select_one("#dic_area") or
@@ -321,7 +332,7 @@ class NewsSummarizer:
             if article:
                 for tag in article.find_all(['img', 'script', 'style', 'iframe']):
                     tag.decompose()
-                        
+
                 text = article.get_text(separator=' ', strip=True)
                 text = ' '.join(text.split())
 
@@ -330,14 +341,16 @@ class NewsSummarizer:
                     'url': url,
                     'title': None,
                     'text': None,
+                    'image_url': None,
                     'success': False,
                     'error': '제목과 본문을 찾을 수 없습니다.',
                 }
-                    
+
             return {
                 'url': url,
                 'title': title,
                 'text': text,
+                'image_url': image_url,
                 'success': True,
             }
         
@@ -347,6 +360,7 @@ class NewsSummarizer:
                 'url': url,
                 'title': None,
                 'text': None,
+                'image_url': None,
                 'success': False,
                 'error': '요청 타임아웃 (15초 초과)',
             }
@@ -356,6 +370,7 @@ class NewsSummarizer:
                 'url': url,
                 'title': None,
                 'text': None,
+                'image_url': None,
                 'success': False,
                 'error': f'HTTP 오류: {e.response.status_code}',
             }
@@ -365,6 +380,7 @@ class NewsSummarizer:
                 'url': url,
                 'title': None,
                 'text': None,
+                'image_url': None,
                 'success': False,
                 'error': f'요청 실패: {str(e)}',
             }
@@ -374,6 +390,7 @@ class NewsSummarizer:
                 'url': url,
                 'title': None,
                 'text': None,
+                'image_url': None,
                 'success': False,
                 'error': f'파싱 실패: {str(e)}',
             }
@@ -403,6 +420,12 @@ class NewsSummarizer:
         if not urls:
             logger.info(f"'{keyword}'에 대한 뉴스 URL을 찾지 못했습니다.")
             return []
+
+        if len(urls) < max_articles:
+            logger.warning(
+                f"요청한 {max_articles}개 중 {len(urls)}개만 찾았습니다. "
+                f"{len(urls)}개로 진행합니다."
+            )
 
         articles = []
         success_count = 0
@@ -584,10 +607,15 @@ class NewsSummarizer:
             distances = cosine_distances([centroid], cluster_embeddings)[0]
             representative_idx = np.argmin(distances)
             representative = cluster_articles[representative_idx]
-            
+
+            # centroid 거리 가까운 순으로 정렬 (이미지 fallback용)
+            sorted_order = np.argsort(distances)
+            articles_by_relevance = [cluster_articles[i] for i in sorted_order]
+
             clusters.append({
                 'cluster_id': cluster_id,
                 'articles': cluster_articles,
+                'articles_by_relevance': articles_by_relevance,
                 'representative': representative,
                 'size': len(cluster_articles)
             })
@@ -686,17 +714,25 @@ class NewsSummarizer:
         # 관련 기사 제목 리스트 (대표 기사 제외)
         rep_title = representative.get('title')
         related_titles = [
-            article.get('title') 
-            for article in cluster.get('articles', []) 
+            article.get('title')
+            for article in cluster.get('articles', [])
             if article.get('title') and article.get('title') != rep_title
         ]
-        
+
+        # 이미지 URL: 관련성 높은 순으로 이미지 있는 첫 번째 기사 사용
+        representative_image_url = None
+        for article in cluster.get('articles_by_relevance', [representative]):
+            if article.get('image_url'):
+                representative_image_url = article['image_url']
+                break
+
         return {
             'cluster_id': cluster.get('cluster_id', 0),
             'size': cluster.get('size', 0),
             'summary': summary,
             'representative_title': rep_title or '제목 없음',
             'representative_url': representative.get('url', ''),
+            'representative_image_url': representative_image_url,
             'related_titles': related_titles
         }
 
@@ -808,6 +844,8 @@ def print_results(results: List[Dict]) -> None:
         print(f"\n📰 대표 기사: {result['representative_title']}")
         if result.get('representative_url'):
             print(f"   🔗 {result['representative_url']}")
+        if result.get('representative_image_url'):
+            print(f"   🖼️  {result['representative_image_url']}")
         print(f"\n📝 요약:\n{result['summary']}")
         
         if result['related_titles']:

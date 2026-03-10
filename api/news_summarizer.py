@@ -1,3 +1,4 @@
+from concurrent.futures import ThreadPoolExecutor
 import os
 import requests
 import urllib.parse
@@ -409,20 +410,8 @@ class NewsSummarizer:
         press_choice: str = None,
         progress_callback=None
     ) -> List[Dict[str, str]]:
-        """
-        키워드로 뉴스 검색 → 모든 기사 본문 추출
+        from concurrent.futures import ThreadPoolExecutor, as_completed
 
-        Args:
-            keyword: 검색 키워드
-            search_engine: 검색 엔진 (포털 사이트)
-            max_articles: 최대 기사 수
-            press_choice: PRESS_LIST 딕셔너리 키 (예: "1"=경향신문)
-                          None이면 전체 언론사 검색
-            progress_callback: 진행 상황 콜백 함수 (percent, message)
-
-        Returns:
-            기사 정보 리스트 (제목, 본문, URL 등)
-        """
         urls = self.get_news_url(keyword, search_engine, max_articles, press_choice)
 
         if not urls:
@@ -433,24 +422,26 @@ class NewsSummarizer:
         if progress_callback:
             progress_callback(5, f'{total}개 기사 발견')
 
-        articles = []
+        articles = [None] * total
         success_count = 0
+        completed = 0
 
-        for i, url in enumerate(urls, 1):
-            logger.info(f"기사 추출 중... ({i}/{len(urls)})")
-            result = self.extract_news_article(url)
-            articles.append(result)
-            
-            if result['success']:
-                success_count += 1
+        with ThreadPoolExecutor(max_workers=8) as executor:
+            future_to_idx = {executor.submit(self.extract_news_article, url): i for i, url in enumerate(urls)}
+            for future in as_completed(future_to_idx):
+                i = future_to_idx[future]
+                result = future.result()
+                articles[i] = result
+                completed += 1
+                if result['success']:
+                    success_count += 1
+                if progress_callback:
+                    percent = 5 + int(completed / total * 55)
+                    progress_callback(percent, f'기사 수집 중... ({completed}/{total})')
 
-
-            if progress_callback:
-                percent = 5 + int(i / total * 55)  # 5→60
-                progress_callback(percent, f'기사 수집 중... ({i}/{total})')
-
-        logger.info(f"기사 추출 완료: {success_count}/{len(urls)} 성공")
+        logger.info(f"기사 추출 완료: {success_count}/{total} 성공")
         return articles
+
 
     def prepare_articles_for_embedding(
         self, 

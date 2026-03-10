@@ -1,208 +1,170 @@
-# ANS - AI News Summarizer
+# ANS — AI 뉴스 요약기
 
-AI-powered news summarization tool that crawls Naver news, clusters similar articles, and generates intelligent summaries using OpenAI GPT.
+키워드를 입력하면 네이버 또는 다음에서 뉴스를 자동으로 수집하고, AI가 비슷한 기사끼리 묶어 핵심 내용을 요약해주는 웹 서비스입니다.
 
-## 🎯 Overview
+---
 
-This application combines web scraping, AI-powered clustering, and intelligent summarization to help users quickly understand news trends.
+## 주요 기능
 
-```
-Next.js Frontend → API Route → Flask Backend → News Crawler + OpenAI Embeddings + GPT Summarization
-```
+- **뉴스 크롤링** — 네이버 뉴스 / 다음 뉴스에서 키워드 기반 기사 자동 수집
+- **언론사 필터** — 경향신문, 조선일보, KBS, JTBC 등 18개 언론사 선택 가능
+- **AI 클러스터링** — OpenAI 임베딩 + K-Means로 비슷한 기사끼리 자동 그룹화
+- **AI 요약** — GPT-4o-mini로 각 그룹의 핵심 내용을 3문장 이내로 요약
+- **실시간 진행 표시** — 크롤링 → 임베딩 → 클러스터링 → 요약 단계별 진행률 표시
+- **검색 기록** — 이전 검색 결과를 로컬에 저장, 재검색 없이 즉시 확인 가능
+- **접힘/펼침 사이드바** — 사이드바 토글로 화면 공간 조절 가능
 
-## 🏗️ Architecture
+---
 
-### Pipeline Components
+## 기술 스택
 
-#### 1. **Web Scraping Layer** (BeautifulSoup)
-- Searches and extracts article content from Naver News
-- Parses HTML to identify headlines and body text
-- Handles multiple Naver news formats (general/sports/entertainment)
-- Robust error handling for failed requests
+| 구분 | 사용 기술 |
+|------|-----------|
+| 프론트엔드 | Next.js 16, React 18, Tailwind CSS v3 |
+| 백엔드 | Python, Flask, Gunicorn |
+| AI | OpenAI API (text-embedding-3-small, GPT-4o-mini) |
+| 크롤링 | requests, BeautifulSoup4 |
+| 클러스터링 | scikit-learn (K-Means) |
+| 배포 | Vercel (프론트엔드), Render (백엔드) |
 
-#### 2. **AI Clustering Engine** (OpenAI + scikit-learn)
-- Converts articles to embeddings using `text-embedding-3-small`
-- Groups similar articles using KMeans clustering
-- Identifies representative articles from each cluster
-- Optimizes content organization
+---
 
-#### 3. **AI Summarization Engine** (OpenAI GPT-4o-mini)
-- Generates concise 3-sentence summaries
-- Context-aware and factual
-- Korean language support
-- Preserves key facts and main ideas
-
-#### 4. **Modern Web Interface** (Next.js + Tailwind CSS)
-- Beautiful, responsive UI with animations
-- Real-time search and processing
-- Clustered results view
-- Related articles grouping
-
-## 🚀 Quick Start
-
-### Prerequisites
-
-- Node.js 16+ and npm
-- Python 3.8+
-- OpenAI API key
-
-### Installation
-
-```bash
-# Clone the repository
-git clone <your-repo-url>
-cd news-summary-ai
-
-# Set up environment variables
-cp .env.example .env
-# Edit .env and add your OpenAI API key
-
-# Install Python dependencies
-pip install -r requirements.txt
-
-# Install Node.js dependencies
-npm install
-```
-
-⚠️ **IMPORTANT**: Never commit your `.env` file to git!
-
-### Running the Application
-
-You need to run both servers:
-
-**Terminal 1: Flask Backend**
-```bash
-python server.py
-```
-
-**Terminal 2: Next.js Frontend**
-```bash
-npm run dev
-```
-
-Then open http://localhost:3000 in your browser.
-
-## 📁 Project Structure
+## 프로젝트 구조
 
 ```
 news-summary-ai/
 ├── pages/
-│   ├── index.js          # Home page with search form
-│   ├── news.js           # Results page with clustered summaries
-│   ├── _app.js           # Next.js app wrapper
+│   ├── index.js          # 검색 페이지 (메인)
+│   ├── news.js           # 결과 페이지
 │   └── api/
-│       └── search.js     # API route handler
+│       ├── search.js     # 검색 요청 → 백엔드 연결
+│       └── progress.js   # 진행률 폴링
 ├── api/
-│   └── news_summarizer.py # News crawler + AI clustering logic
-├── styles/
-│   └── globals.css       # Global styles with Tailwind
-├── server.py             # Flask backend server
-├── .env.example          # Environment variables template
-├── requirements.txt      # Python dependencies
-├── package.json          # Node dependencies
-└── README.md             # This file
+│   ├── news_summarizer.py  # 크롤링 / 임베딩 / 클러스터링 / 요약 핵심 로직
+│   └── config.py           # 언론사 목록 (PRESS_LIST)
+├── server.py             # Flask 서버 (백그라운드 작업 관리)
+├── requirements.txt      # Python 패키지 목록
+├── package.json          # Node 패키지 목록
+└── .env                  # 환경변수 (절대 커밋 금지)
 ```
-
-## 💻 How It Works
-
-1. **User searches** for a keyword on the Next.js frontend
-2. **Frontend API route** (`/api/search`) proxies the request to Flask backend
-3. **Flask backend** receives the search request
-4. **News Crawler** searches Naver and extracts article URLs
-5. **Article Extractor** scrapes full content from each URL
-6. **Embeddings** are generated using OpenAI `text-embedding-3-small`
-7. **KMeans Clustering** groups similar articles together
-8. **GPT-4o-mini** summarizes the representative article from each cluster
-9. **Results** are sent back to frontend and displayed in a beautiful UI
-
-## 🎨 Features
-
-- 🔍 **Smart Search**: Keyword-based Naver news search
-- 🤖 **AI Clustering**: Groups similar articles using embeddings
-- 📝 **Intelligent Summaries**: 3-sentence summaries in Korean
-- ⚡ **Real-time Processing**: Live search and summarization
-- 🎯 **Cluster View**: See related articles grouped together
-- 💎 **Modern UI**: Beautiful gradient design with Tailwind CSS
-- 📱 **Responsive**: Works on all device sizes
-
-## 🛠️ API Endpoints
-
-### Flask Backend
-
-- **POST** `/api/summarize` - Summarize news articles
-  ```json
-  {
-    "keyword": "AI",
-    "max_articles": 20,
-    "n_clusters": 3
-  }
-  ```
-
-- **GET** `/health` - Health check
-
-### Next.js API Routes
-
-- **POST** `/api/search` - Proxy to Flask backend
-
-## 🔧 Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `OPENAI_API_KEY` | Your OpenAI API key | Required |
-| `PYTHON_API_URL` | Flask backend URL | `http://localhost:5000` |
-| `PORT` | Flask server port | `5000` |
-
-## 🚨 Security Notes
-
-🔒 **NEVER commit your `.env` file!**
-
-If you accidentally exposed your API key:
-1. Go to https://platform.openai.com/api-keys
-2. Revoke the exposed key
-3. Generate a new key
-4. Update your `.env` file
-
-## 🐛 Troubleshooting
-
-### "Flask 서버에 연결할 수 없습니다"
-- Ensure Flask server is running on port 5000
-- Check `PYTHON_API_URL` in `.env`
-
-### "OPENAI_API_KEY가 설정되지 않았습니다"
-- Verify `.env` file exists in project root
-- Check that the API key is valid
-
-### No search results
-- Check internet connection
-- Try a different keyword
-- Increase number of articles
-
-## 🎯 Technologies Used
-
-**Frontend:**
-- Next.js 14
-- React 18
-- Tailwind CSS
-
-**Backend:**
-- Flask 3.0
-- OpenAI API (GPT-4o-mini, text-embedding-3-small)
-- BeautifulSoup4
-- scikit-learn
-- NumPy
-
-## 📝 License
-
-MIT
-
-## 🤝 Contributing
-
-Pull requests are welcome! For major changes, please open an issue first.
-
-## 📧 Contact
-
-Built with ♥ by ANS Team
 
 ---
 
-⭐ If you find this project useful, please consider giving it a star!
+## 로컬 실행 방법
+
+### 1. 환경변수 설정
+
+프로젝트 루트에 `.env` 파일 생성:
+
+```
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+```
+
+### 2. Python 백엔드 실행
+
+```bash
+pip install -r requirements.txt
+python server.py
+```
+
+Flask 서버가 `http://localhost:5000` 에서 실행됩니다.
+
+### 3. Next.js 프론트엔드 실행
+
+```bash
+npm install
+npm run dev
+```
+
+브라우저에서 `http://localhost:3000` 접속.
+
+---
+
+## 배포 구조
+
+```
+사용자 브라우저
+     │
+     ▼
+Vercel (Next.js)          ← 프론트엔드
+     │  /api/search.js
+     │  /api/progress.js
+     ▼
+Render (Flask)            ← 백엔드
+     │  POST /api/summarize-start
+     │  GET  /api/progress/<job_id>
+     ▼
+OpenAI API
+```
+
+### Vercel 환경변수 설정
+
+Vercel 프로젝트 설정 → Environment Variables:
+
+```
+PYTHON_API_URL=https://your-app.onrender.com
+```
+
+### Render 환경변수 설정
+
+```
+OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
+```
+
+---
+
+## API 엔드포인트
+
+| 메서드 | 경로 | 설명 |
+|--------|------|------|
+| POST | `/api/summarize-start` | 백그라운드 요약 작업 시작, job_id 반환 |
+| GET | `/api/progress/<job_id>` | 진행률 및 결과 조회 |
+| POST | `/api/summarize` | 동기식 요약 (구버전 호환) |
+| GET | `/api/health` | 서버 상태 확인 |
+
+---
+
+## 사용 방법
+
+1. 검색창에 키워드 입력 (예: `반도체`, `AI`, `부동산`)
+2. 검색 엔진 선택 — 네이버 / 다음
+3. 원하는 언론사 선택 (선택 사항)
+4. **검색** 버튼 클릭
+5. 진행률 표시줄이 단계별로 업데이트됨
+6. 완료 후 뉴스 그룹 목록과 AI 요약 확인
+7. 사이드바의 최근 검색 목록을 클릭하면 이전 결과를 즉시 확인 가능
+
+---
+
+## 지원 언론사
+
+경향신문, 국민일보, 동아일보, 매일경제, 시사IN, 연합뉴스, 조선일보, 중앙일보, 한겨레, 한국경제, 한국일보, KBS, JTBC, MBC, OSEN, SBS, TV조선, YTN
+
+---
+
+## 자주 발생하는 문제
+
+**"Flask 서버에 연결할 수 없습니다"**
+- `python server.py` 가 실행 중인지 확인
+- `.env` 의 `PYTHON_API_URL` 확인
+
+**"OPENAI_API_KEY가 설정되지 않았습니다"**
+- 프로젝트 루트에 `.env` 파일이 있는지 확인
+- API 키가 `sk-` 또는 `sk-proj-` 로 시작하는지 확인
+
+**검색 결과가 없음**
+- 다른 키워드로 시도
+- 검색 엔진을 네이버 ↔ 다음으로 변경
+- 기사 수를 늘려서 재시도
+
+**Render 배포 후 첫 검색이 느림**
+- Render 무료 플랜은 15분 비활성 시 서버가 종료됩니다
+- [UptimeRobot](https://uptimerobot.com) 에서 `/api/health` 를 5분마다 핑하도록 설정하면 해결됩니다
+
+---
+
+## 주의사항
+
+- `.env` 파일은 절대 Git에 커밋하지 마세요.
+- OpenAI API 키가 노출된 경우 [플랫폼](https://platform.openai.com/api-keys) 에서 즉시 폐기하고 새 키를 발급하세요.
+- 뉴스 크롤링은 네이버·다음의 HTML 구조에 의존하므로 사이트 구조 변경 시 셀렉터 수정이 필요할 수 있습니다.

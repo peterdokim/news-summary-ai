@@ -1,5 +1,7 @@
-from flask import Flask, request, jsonify
-from flask_cors import CORS
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel
+from typing import Optional 
 from api.news_summarizer import NewsSummarizer, NewsSearchError, EmbeddingError, ClusteringError
 import os
 import traceback
@@ -7,7 +9,16 @@ import threading
 import uuid
 import time
 import logging
+from fastapi.responses import JSONResponse
+import uvicorn
 
+
+class SummarizeRequest(BaseModel):
+    keyword: str
+    search_engine: Optional[str] = '네이버'
+    max_articles: Optional[int] = 20
+    n_clusters: Optional[int] = 3
+    press_choice: Optional[str] = None
 # 로깅 설정
 logging.basicConfig(
     level=logging.INFO,
@@ -15,8 +26,8 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-app = Flask(__name__)
-CORS(app)
+app = FastAPI()
+app.add_middleware(CORSMiddleware, allow_origins=["*"], allow_methods=["*"], allow_headers=["*"])
 
 # Initialize the news summarizer
 try:
@@ -39,14 +50,15 @@ def cleanup_old_jobs():
         for jid in expired:
             del jobs[jid]
             
-@app.route('/')
-@app.route('/api/health')
+@app.get('/')
+@app.get('/api/health')
 def health():
-    return {'status': 'ok'}, 200
+    return {'status': 'ok'}
 
 
-@app.route('/api/summarize', methods=['POST'])
-def summarize_news():
+@app.post('/api/summarize')
+def summarize_news(body: SummarizeRequest):
+    
     """
     API endpoint to summarize news articles
 
@@ -60,32 +72,17 @@ def summarize_news():
     """
     if not summarizer:
         logger.error("❌ NewsSummarizer not initialized")
-        return jsonify({
+        return {
             'success': False,
             'error': 'Server not properly initialized. Please check your OpenAI API key.'
-        }), 500
-    
+        }
+
     try:
-        data = request.get_json()
-
-        if not data:
-            return jsonify({
-                'success': False,
-                'error': 'No JSON data provided'
-            }), 400
-
-        keyword = data.get('keyword')
-        if not keyword:
-            return jsonify({
-                'success': False,
-                'error': '검색어를 입력해주세요'
-            }), 400
-
-        search_engine = data.get('search_engine', '네이버')
-        max_articles = data.get('max_articles', 20)
+        keyword = body.keyword
+        search_engine = body.search_engine
+        max_articles = body.max_articles
+        n_clusters = body.n_clusters
         
-        n_clusters = data.get('n_clusters', 3)
-        search_engine = data.get('search_engine', '네이버')
 
         logger.info(f"🔍 Request received: keyword='{keyword}', search_engine='{search_engine}', max_articles={max_articles}")
 
@@ -98,77 +95,75 @@ def summarize_news():
         )
 
         if not results:
-            return jsonify({
+            return {
                 'success': False,
                 'error': f"'{keyword}'에 대한 유효한 뉴스 기사가 없습니다."
-            }), 404
+            }
 
         logger.info(f"완료: {len(results)}개 클러스터 생성")
 
-        return jsonify({
+        return {
             'success': True,
             'keyword': keyword,
             'search_engine': search_engine,
             'results': results,
             'total_clusters': len(results)
-        }), 200
+        }
 
     except ValueError as e:
         logger.warning(f"입력값 오류: {e}")
-        return jsonify({
+        return JSONResponse({
             'success': False,
             'error': str(e)
-        }), 400
+        },status_code=400)
     except NewsSearchError as e:
         logger.error(f"뉴스 검색 오류: {e}")
-        return jsonify({
+        return JSONResponse({
             'success': False,
             'error': f"뉴스 검색 실패: {str(e)}"
-        }), 400
+        },status_code=400)
     except EmbeddingError as e:
         logger.error(f"임베딩 생성 오류: {e}")
-        return jsonify({
+        return JSONResponse({
             'success': False,
             'error': f"임베딩 생성 실패: {str(e)}"
-        }), 500
+        },status_code=500)
     except ClusteringError as e:
         logger.error(f"클러스터링 오류: {e}")
-        return jsonify({
+        return JSONResponse({
             'success': False,
             'error': f"클러스터링 실패: {str(e)}"
-        }), 500
+        },status_code=500)
     except Exception as e:
         error_msg = str(e)
         logger.error(f"서버 오류: {error_msg}\n{traceback.format_exc()}")
 
         # Check for OpenAI quota error
         if 'quota' in error_msg.lower() or '429' in error_msg:
-            return jsonify({
+            return JSONResponse({
                 'success': False,
                 'error': 'OpenAI API 할당량이 초과되었습니다. 계정 결제 정보를 확인하세요.',
                 'details': error_msg
-            }), 429
+            },status_code=429)
 
-        return jsonify({
+        return JSONResponse({
             'success': False,
             'error': '서버 오류가 발생했습니다.',
             'details': error_msg
-        }), 500
+        },status_code=500)
 
-@app.route('/api/summarize-start', methods=['POST'])
-def summarize_start():
+@app.post('/api/summarize-start')
+def summarize_start(body: SummarizeRequest):
+    
     """Start a background summarization job and return a job_id immediately."""
-    data = request.get_json()
-    if not data:
-        return jsonify({'success': False, 'error': 'No JSON data provided'}), 400
 
-    keyword = data.get('keyword')
+    keyword = body.keyword
     if not keyword:
-        return jsonify({'success': False, 'error': '검색어를 입력해주세요'}), 400
+        return JSONResponse({'success': False, 'error': '검색어를 입력해주세요'},status_code=400)
 
-    max_articles = data.get('max_articles', 20)
-    n_clusters = data.get('n_clusters', 3)
-    search_engine = data.get('search_engine', '네이버')
+    max_articles = body.max_articles
+    n_clusters = body.n_clusters
+    search_engine = body.search_engine
 
     job_id = str(uuid.uuid4())
     with jobs_lock:
@@ -214,17 +209,17 @@ def summarize_start():
     thread = threading.Thread(target=run_job, daemon=True)
     thread.start()
 
-    return jsonify({'success': True, 'job_id': job_id}), 202
+    return JSONResponse({'success': True, 'job_id': job_id},status_code=202)
 
 
-@app.route('/api/progress/<job_id>', methods=['GET'])
-def get_progress(job_id):
+@app.get('/api/progress/{job_id}')
+def get_progress(job_id:str):
     """Return current progress of a background summarization job."""
     with jobs_lock:
         job = jobs.get(job_id)
     if not job:
-        return jsonify({'error': 'Job not found'}), 404
-    return jsonify({
+        return JSONResponse({'error': 'Job not found'},status_code=404)
+    return JSONResponse({
         'progress': job['progress'],
         'message': job['message'],
         'done': job['done'],
@@ -235,19 +230,19 @@ def get_progress(job_id):
     })
 
 
-@app.route('/health', methods=['GET'])
-def health_check():
-    """Health check endpoint"""
-    return jsonify({
-        'status': 'healthy',
-        'service': 'ANS News Summarizer API'
-    }), 200
+# @app.get('/health', methods=['GET'])
+# def health_check():
+#     """Health check endpoint"""
+#     return JSONResponse({
+#         'status': 'healthy',
+#         'service': 'ANS News Summarizer API'
+#     },status_code=200)
 
 if __name__ == '__main__':
     port = int(os.environ.get('PORT', 5000))
-    debug = os.environ.get('FLASK_ENV') == 'development'
+    
 
     print(f"Starting Flask server on port {port}...")
     print(f"API endpoint: http://localhost:{port}/api/summarize")
 
-    app.run(host='0.0.0.0', port=port, debug=debug)
+    uvicorn.run(app,host='0.0.0.0', port=port)

@@ -587,9 +587,10 @@ class NewsSummarizer:
         
         try:
             kmeans = KMeans(
-                n_clusters=actual_clusters, 
-                random_state=42, 
-                n_init=10
+                n_clusters=actual_clusters,
+                random_state=42,
+                n_init=3,
+                max_iter=100
             )
             labels = kmeans.fit_predict(embeddings)
         except Exception as e:
@@ -821,19 +822,24 @@ class NewsSummarizer:
 
         # 5. 요약 (클러스터별 진행 표시)
         logger.info("5단계: 요약 생성...")
-        results = []
         total_clusters = len(clusters)
-        for i, cluster in enumerate(clusters, 1):
+        results = [None] * len(clusters)
+        completed_count = [0] # mutable for closure
+        def summarize_with_progress(args):
+            i, cluster = args
+            result = self.summarize_cluster(cluster)
+            completed_count[0] += 1
             if progress_callback:
-                percent = 75 + int(i / total_clusters * 25)  # 75→100
-                progress_callback(percent, f'요약 생성 중... ({i}/{total_clusters})')
-            logger.info(f"클러스터 요약 중... ({i}/{total_clusters})")
-            results.append(self.summarize_cluster(cluster))
+                percent = 72 + int(completed_count[0] / total_clusters * 28)
+                progress_callback(percent, f'요약 생성 중... ({completed_count[0]}/{total_clusters})')
+            return (i, result)
+        with ThreadPoolExecutor(max_workers=total_clusters) as executor:
+            for i, result in executor.map(summarize_with_progress, enumerate(clusters)):
+                results[i] = result
 
         if progress_callback:
             progress_callback(100, '완료!')
         logger.info(f"=== 완료: {len(results)}개 그룹 생성 ===")
-
         return results
 
 

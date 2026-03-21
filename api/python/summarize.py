@@ -43,6 +43,7 @@ def summarize_news():
 
         max_articles = data.get('max_articles', 20)
         n_clusters = data.get('n_clusters', 3)
+        search_engine = data.get('search_engine', '네이버')
 
         # Run the summarizer
         sum_instance = get_summarizer()

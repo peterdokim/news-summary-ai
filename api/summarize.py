@@ -2,6 +2,7 @@ from http.server import BaseHTTPRequestHandler
 import json
 import os
 import sys
+from json import JSONDecodeError
 
 # Add the api directory to path
 sys.path.insert(0, os.path.dirname(__file__))
@@ -23,7 +24,18 @@ class handler(BaseHTTPRequestHandler):
             # Read request body
             content_length = int(self.headers.get('Content-Length', 0))
             body = self.rfile.read(content_length)
-            data = json.loads(body) if body else {}
+            try:
+                data = json.loads(body) if body else {}
+            except JSONDecodeError:
+                self.send_response(400)
+                self.send_header('Content-Type', 'application/json')
+                self.send_header('Access-Control-Allow-Origin', '*')
+                self.end_headers()
+                self.wfile.write(json.dumps({
+                    'success': False,
+                    'error': 'Invalid JSON payload'
+                }).encode())
+                return
 
             # Validate input
             keyword = data.get('keyword')
@@ -40,6 +52,7 @@ class handler(BaseHTTPRequestHandler):
 
             max_articles = data.get('max_articles', 20)
             n_clusters = data.get('n_clusters', 3)
+            search_engine = data.get('search_engine', '네이버')
 
             # Run summarizer
             summarizer = get_summarizer()

@@ -157,6 +157,13 @@ def summarize_start(body: SummarizeRequest):
     
     """Start a background summarization job and return a job_id immediately."""
 
+    if not summarizer:
+        logger.error("NewsSummarizer not initialized for background job")
+        return JSONResponse({
+            'success': False,
+            'error': 'Server not properly initialized. Please check your OpenAI API key.'
+        }, status_code=500)
+
     keyword = body.keyword
     if not keyword:
         return JSONResponse({'success': False, 'error': '검색어를 입력해주세요'},status_code=400)

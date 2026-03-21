@@ -143,6 +143,13 @@ export default function Home() {
     localStorage.setItem('ansSearchHistory', JSON.stringify(updated));
   };
 
+  const handleHistoryKeyDown = (event, entry) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleHistoryClick(entry);
+    }
+  };
+
   const clearHistory = () => {
     setSearchHistory([]);
     localStorage.removeItem('ansSearchHistory');
@@ -221,9 +228,12 @@ export default function Home() {
                 ) : (
                   <div className="space-y-0.5">
                     {searchHistory.map((entry) => (
-                      <button
+                      <div
                         key={entry.id}
                         onClick={() => handleHistoryClick(entry)}
+                        onKeyDown={(e) => handleHistoryKeyDown(e, entry)}
+                        role="button"
+                        tabIndex={0}
                         className="w-full text-left flex items-start gap-2 px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors group"
                       >
                         <svg className="w-3.5 h-3.5 text-gray-600 mt-0.5 flex-shrink-0 group-hover:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -242,7 +252,7 @@ export default function Home() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         </button>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}

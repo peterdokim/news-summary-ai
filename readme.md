@@ -167,4 +167,4 @@ OPENAI_API_KEY=sk-xxxxxxxxxxxxxxxxxxxx
 
 - `.env` 파일은 절대 Git에 커밋하지 마세요.
 - OpenAI API 키가 노출된 경우 [플랫폼](https://platform.openai.com/api-keys) 에서 즉시 폐기하고 새 키를 발급하세요.
-- 뉴스 크롤링은 네이버·다음의 HTML 구조에 의존하므로 사이트 구조 변경 시 셀렉터 수정이 필요할 수 있습니다.
+- 

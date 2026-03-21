@@ -47,6 +47,13 @@ export default function News() {
     localStorage.setItem('ansSearchHistory', JSON.stringify(updated));
   };
 
+  const handleHistoryKeyDown = (event, entry) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault();
+      handleHistoryClick(entry);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-100 flex items-center justify-center">
@@ -146,9 +153,12 @@ export default function News() {
                 ) : (
                   <div className="space-y-0.5">
                     {searchHistory.map((entry) => (
-                      <button
+                      <div
                         key={entry.id}
                         onClick={() => handleHistoryClick(entry)}
+                        onKeyDown={(e) => handleHistoryKeyDown(e, entry)}
+                        role="button"
+                        tabIndex={0}
                         className="w-full text-left flex items-start gap-2 px-3 py-2 rounded-lg hover:bg-gray-800 transition-colors group"
                       >
                         <svg className="w-3.5 h-3.5 text-gray-600 mt-0.5 flex-shrink-0 group-hover:text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -163,7 +173,7 @@ export default function News() {
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                           </svg>
                         </button>
-                      </button>
+                      </div>
                     ))}
                   </div>
                 )}
@@ -243,7 +253,7 @@ export default function News() {
         </div>
 
         {/* ── Summary Panel ── */}
-        <main className="md:ml-60flex-1 overflow-y-auto bg-gray-50">
+        <main className="flex-1 overflow-y-auto bg-gray-50">
           {!selected ? (
             <div className="flex items-center justify-center h-full text-gray-400 text-sm">
               기사를 선택하세요

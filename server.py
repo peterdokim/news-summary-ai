@@ -52,6 +52,8 @@ def cleanup_old_jobs():
             
 @app.get('/')
 @app.get('/api/health')
+@app.head('/')
+@app.head('/api/health')
 def health():
     return {'status': 'ok'}
 
